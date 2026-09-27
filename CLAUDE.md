@@ -16,9 +16,14 @@ Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
 - `flowType: 'pkce'` is required: Supabase then returns with `?code=` (query), not `#access_token=` (hash), so it
   doesn't collide with HashRouter. The library exchanges the code and strips it from the URL.
 - PKCE links (reset, confirm) only work in the browser that requested them; `lib/auth.tsx` shows a friendly error otherwise.
-- Redirects go to `appUrl()` (origin + path). Supabase must allow it: Site URL = the Pages URL, plus `http://localhost:5173/**`.
+- Redirects go to `appUrl()` (origin + path). Supabase must allow it: Site URL = the Pages URL; Redirect URLs =
+  `https://kalharatennakoon.github.io/job-tracker/**` and `http://localhost:5173/**`.
 - OAuth buttons render only for providers enabled in Supabase (read from the public `/auth/v1/settings`).
   Google is set up; GitHub just needs enabling in Supabase.
+- Sign-up confirmation: `emailRedirectTo` is `appUrl()?confirmed=1`. `lib/auth.tsx` sees the marker once at load,
+  lets the library exchange the code, signs out locally, cleans the URL and shows "Your email is confirmed. Please
+  sign in." Works even if the link is opened in another browser (the email is confirmed server-side before redirect).
+  Supabase Redirect URLs must include `https://kalharatennakoon.github.io/job-tracker/**` or the marker is dropped.
 - Keep side effects (URL cleanup) out of React state updaters; StrictMode runs them twice in dev.
 
 ## Privacy & account deletion

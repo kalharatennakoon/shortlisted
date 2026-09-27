@@ -9,10 +9,13 @@ interface AuthState {
   recovery: boolean
   /** Problem with an email/OAuth link the user just followed (expired, other browser, cancelled…). */
   linkError: string | null
+  /** One-off success message for the sign-in screen (e.g. after confirming a sign-up email). */
+  notice: string | null
 }
 
 interface AuthContextValue extends AuthState {
   finishRecovery: () => void
+  /** Clears both the link error and the notice (called when the user starts doing something else). */
   clearLinkError: () => void
 }
 
@@ -21,9 +24,37 @@ const AuthContext = createContext<AuthContextValue>({
   loading: true,
   recovery: false,
   linkError: null,
+  notice: null,
   finishRecovery: () => {},
   clearLinkError: () => {},
 })
+
+/**
+ * Sign-up confirmation emails link back to `appUrl()?confirmed=1` (see Login.tsx). Supabase has already
+ * confirmed the address by then; the library would also sign the user straight in, but we want them to
+ * land on the sign-in screen instead. This runs once per page load, before the UI reads the session.
+ */
+export const CONFIRM_PARAM = 'confirmed'
+const initialParams = new URLSearchParams(window.location.search)
+const CONFIRMING = initialParams.has(CONFIRM_PARAM) && !initialParams.has('error_description')
+let confirmFinished = !CONFIRMING
+const CONFIRMED_NOTICE = 'Your email is confirmed. Please sign in.'
+
+const signupConfirmation: Promise<boolean> = (async () => {
+  if (!CONFIRMING) return false
+  try {
+    const { data } = await supabase.auth.getSession() // waits for the ?code= exchange
+    if (data.session) await supabase.auth.signOut({ scope: 'local' })
+  } finally {
+    // Clean the URL whether or not the exchange worked: opened in another browser (no PKCE verifier)
+    // the exchange fails, but the email IS confirmed, so the message is still true.
+    const url = new URL(window.location.href)
+    ;[CONFIRM_PARAM, 'code', 'sb_flow_id'].forEach((k) => url.searchParams.delete(k))
+    window.history.replaceState(window.history.state, '', url.toString())
+    confirmFinished = true
+  }
+  return true
+})()
 
 /** Reads ?error_description=… (Supabase redirect errors) and a leftover ?code=… (exchange failed). */
 function readLinkProblem(hadSession: boolean): string | null {
@@ -33,7 +64,9 @@ function readLinkProblem(hadSession: boolean): string | null {
   if (!description && !leftoverCode) return null
 
   const url = new URL(window.location.href)
-  ;['error', 'error_code', 'error_description', 'code', 'sb_flow_id'].forEach((k) => url.searchParams.delete(k))
+  ;['error', 'error_code', 'error_description', 'code', 'sb_flow_id', CONFIRM_PARAM].forEach((k) =>
+    url.searchParams.delete(k),
+  )
   window.history.replaceState(window.history.state, '', url.toString())
 
   if (description) return description.replace(/\+/g, ' ')
@@ -41,23 +74,39 @@ function readLinkProblem(hadSession: boolean): string | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthState>({ session: null, loading: true, recovery: false, linkError: null })
+  const [state, setState] = useState<AuthState>({
+    session: null,
+    loading: true,
+    recovery: false,
+    linkError: null,
+    notice: null,
+  })
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) =>
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      // While a sign-up confirmation is being turned into "please sign in", ignore the brief
+      // SIGNED_IN / SIGNED_OUT pair so the tracker never flashes on screen.
+      if (!confirmFinished) return
       setState((s) => ({
         ...s,
         session,
         loading: false,
         recovery: event === 'PASSWORD_RECOVERY' ? true : event === 'SIGNED_OUT' ? false : s.recovery,
-      })),
-    )
-    // getSession waits for the library to finish handling any ?code= in the URL
-    supabase.auth.getSession().then(({ data }) => {
+      }))
+    })
+    signupConfirmation.then(async (confirmed) => {
+      // getSession waits for the library to finish handling any ?code= in the URL
+      const { data } = await supabase.auth.getSession()
       // Read (and clean) the URL outside the state updater, which must stay side-effect free.
       // Keep any earlier result: StrictMode runs this effect twice in dev and the URL is already clean.
       const problem = readLinkProblem(Boolean(data.session))
-      setState((s) => ({ ...s, session: data.session, loading: false, linkError: problem ?? s.linkError }))
+      setState((s) => ({
+        ...s,
+        session: data.session,
+        loading: false,
+        linkError: problem ?? s.linkError,
+        notice: confirmed ? CONFIRMED_NOTICE : s.notice,
+      }))
     })
     return () => sub.subscription.unsubscribe()
   }, [])
@@ -67,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         ...state,
         finishRecovery: () => setState((s) => ({ ...s, recovery: false })),
-        clearLinkError: () => setState((s) => ({ ...s, linkError: null })),
+        clearLinkError: () => setState((s) => ({ ...s, linkError: null, notice: null })),
       }}
     >
       {children}

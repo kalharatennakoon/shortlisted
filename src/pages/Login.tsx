@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { accountJustDeleted, clearAccountDeletedNotice } from '../lib/account'
 import { Logo } from '../components/Icons'
-import { useAuth } from '../lib/auth'
+import { CONFIRM_PARAM, useAuth } from '../lib/auth'
 import { appUrl, enabledOAuthProviders, supabase, type OAuthProvider } from '../lib/supabase'
 
 type Mode = 'signin' | 'signup' | 'forgot'
@@ -27,7 +27,7 @@ function ProviderIcon({ provider }: { provider: OAuthProvider }) {
 }
 
 export default function Login() {
-  const { linkError, clearLinkError } = useAuth()
+  const { linkError, notice, clearLinkError } = useAuth()
   const [accountDeleted, setAccountDeleted] = useState(accountJustDeleted)
   const [mode, setMode] = useState<Mode>('signin')
   const [email, setEmail] = useState('')
@@ -62,7 +62,12 @@ export default function Login() {
     if (mode === 'signin') {
       ;({ error: err } = await supabase.auth.signInWithPassword({ email, password }))
     } else if (mode === 'signup') {
-      ;({ error: err } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: appUrl() } }))
+      ;({ error: err } = await supabase.auth.signUp({
+        email,
+        password,
+        // marker so the app sends them to sign in after confirming (see lib/auth.tsx)
+        options: { emailRedirectTo: `${appUrl()}?${CONFIRM_PARAM}=1` },
+      }))
       if (!err) setMessage('Check your email to confirm your account, then sign in.')
     } else {
       ;({ error: err } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: appUrl() }))
@@ -131,6 +136,7 @@ export default function Login() {
         {accountDeleted && !message && !shownError && (
           <p className="success">Your account and all your applications have been deleted.</p>
         )}
+        {notice && !message && !shownError && <p className="success">{notice}</p>}
         {shownError && <p className="error">{shownError}</p>}
         {message && <p className="success">{message}</p>}
         <button type="submit" className="primary" disabled={busy}>
