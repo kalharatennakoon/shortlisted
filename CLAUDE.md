@@ -70,6 +70,7 @@ src/
   components/StatsView.tsx  Stats tab: stat tiles + weekly columns + bar lists, each with a table toggle
   components/ApplicationForm.tsx  Add/edit/delete modal
   components/AccountMenu.tsx  Avatar menu: Privacy, Sign out, Delete account (typed DELETE confirm)
+  components/PasswordInput.tsx  Password field with show/hide eye toggle (use for every password input)
   components/Icons.tsx  Inline SVG icons + Logo (SVG, unique gradient ids via useId)
 supabase/migrations/   SQL migrations, run in order
 ```
@@ -90,6 +91,8 @@ supabase/migrations/   SQL migrations, run in order
 - No horizontal scrolling anywhere: the board is a grid of 6 columns, 3 under 1180px, stacked under 700px.
   Table hides Company/Platform/Priority under 860px (company shows under the role instead).
 - Status colours live in `.status-*` classes as `--st-bg/--st-fg/--st-dot`; always shown with a text label.
+- Don't wrap an input in a <label> that also contains another button (e.g. "Forgot password?"): label clicks
+  activate the first labelable element. Use <label htmlFor> + a `.field` div instead.
 - Icons are inline SVGs in `components/Icons.tsx` (no icon library).
 - Logo = stacked kanban cards with a check on a blue→violet tile (Kalhara chose it). The same artwork lives in
   `Logo` (Icons.tsx), `public/favicon.svg`, `public/icon-192.png`, `public/icon-512.png`, `public/apple-touch-icon.png`;

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { accountJustDeleted, clearAccountDeletedNotice } from '../lib/account'
 import { Logo } from '../components/Icons'
+import PasswordInput from '../components/PasswordInput'
 import { CONFIRM_PARAM, useAuth } from '../lib/auth'
 import { appUrl, enabledOAuthProviders, supabase, type OAuthProvider } from '../lib/supabase'
 
@@ -114,24 +115,26 @@ export default function Login() {
           <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         </label>
         {mode !== 'forgot' && (
-          <label>
+          // Not a wrapping <label>: it would contain the "Forgot password?" button, and clicks on the
+          // label (or the eye toggle) would activate that button.
+          <div className="field">
             <span className="label-row">
-              Password
+              <label htmlFor="password">Password</label>
               {mode === 'signin' && (
                 <button type="button" className="link small" onClick={() => switchMode('forgot')}>
                   Forgot password?
                 </button>
               )}
             </span>
-            <input
-              type="password"
+            <PasswordInput
+              id="password"
               required
               minLength={6}
               autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-          </label>
+          </div>
         )}
         {accountDeleted && !message && !shownError && (
           <p className="success">Your account and all your applications have been deleted.</p>

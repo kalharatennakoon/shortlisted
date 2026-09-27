@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Logo } from '../components/Icons'
+import PasswordInput from '../components/PasswordInput'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 
@@ -41,11 +42,11 @@ export default function ResetPassword() {
           <h1>Set a new password</h1>
           <label>
             New password
-            <input type="password" required minLength={6} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <PasswordInput required minLength={6} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
           </label>
           <label>
             Confirm new password
-            <input type="password" required minLength={6} autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+            <PasswordInput required minLength={6} autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
           </label>
           {error && <p className="error">{error}</p>}
           <button type="submit" className="primary" disabled={busy}>{busy ? 'Saving…' : 'Save password'}</button>

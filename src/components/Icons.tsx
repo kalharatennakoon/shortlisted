@@ -84,6 +84,18 @@ export const FlagIcon = (p: IconProps) => (
   </Icon>
 )
 
+export const EyeIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+    <circle cx="12" cy="12" r="3" />
+  </Icon>
+)
+export const EyeOffIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M9.9 4.2A10.4 10.4 0 0 1 12 4c6.5 0 10 8 10 8a17.6 17.6 0 0 1-2.2 3.2M6.6 6.6A17.4 17.4 0 0 0 2 12s3.5 8 10 8a9.7 9.7 0 0 0 5.4-1.6" />
+    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2M2 2l20 20" />
+  </Icon>
+)
 export const ShieldIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
