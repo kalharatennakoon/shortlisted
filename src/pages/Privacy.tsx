@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Logo } from '../components/Icons'
 import { useAuth } from '../lib/auth'
-import { CONTACT_LABEL, CONTACT_URL, OWNER_NAME, PRIVACY_UPDATED } from '../lib/config'
+import { CONTACT_EMAIL, OWNER_NAME, PRIVACY_UPDATED } from '../lib/config'
 
 export default function Privacy() {
   const { session } = useAuth()
@@ -57,7 +57,8 @@ export default function Privacy() {
 
         <h2>Questions</h2>
         <p>
-          Something unclear? <a href={CONTACT_URL} target="_blank" rel="noreferrer">{CONTACT_LABEL}</a>.
+          Something unclear, or want your data removed? Email{' '}
+          <a href={`mailto:${CONTACT_EMAIL}?subject=Job%20Tracker`}>{CONTACT_EMAIL}</a>.
         </p>
 
         <footer className="doc-foot">

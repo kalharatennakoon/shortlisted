@@ -27,6 +27,7 @@ Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
 - Keep side effects (URL cleanup) out of React state updaters; StrictMode runs them twice in dev.
 
 ## Privacy & account deletion
+- The repo is (or is about to be) private: GitHub Pro keeps Pages public. Don't link to the repo from the app; contact is by email.
 - `public.delete_my_account()` (migration `20260927170000`) is SECURITY DEFINER, deletes only `auth.uid()`'s
   applications and auth user; executable by `authenticated` only. Keep the privacy page accurate if data
   handling changes (new tables, analytics, third parties), and bump `PRIVACY_UPDATED` in `lib/config.ts`.
@@ -62,7 +63,7 @@ src/
   lib/types.ts         Application type + enum constants
   lib/applications.ts  CRUD calls against the applications table
   lib/account.ts       deleteMyAccount() via rpc + one-time 'account deleted' notice
-  lib/config.ts        Owner name, contact link, privacy 'last updated' date
+  lib/config.ts        Owner name, contact email (jobtracker.app.lk@gmail.com), privacy 'last updated' date
   lib/dates.ts         Local YYYY-MM-DD helpers (todayKey, addDays, daysBetween). Never use toISOString for "today"
   lib/nextSteps.ts     Up-next logic: plannedSteps (overdue first), urgency/labels, needsFollowUp (Applied 14+ days, nothing planned)
   lib/stats.ts         Pure stat helpers (summary, by status, response by platform, per week)
