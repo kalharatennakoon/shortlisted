@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import ApplicationForm from '../components/ApplicationForm'
 import CalendarView from '../components/CalendarView'
 import StatsView from '../components/StatsView'
+import AccountMenu from '../components/AccountMenu'
 import {
   BoardIcon,
   BuildingIcon,
@@ -9,7 +10,6 @@ import {
   ChartIcon,
   FlagIcon,
   Logo,
-  LogOutIcon,
   PlusIcon,
   SearchIcon,
   TableIcon,
@@ -21,7 +21,6 @@ import {
   updateApplication,
 } from '../lib/applications'
 import { useAuth } from '../lib/auth'
-import { supabase } from '../lib/supabase'
 import { STATUSES, type Application, type Status } from '../lib/types'
 
 type View = 'board' | 'table' | 'calendar' | 'stats'
@@ -98,12 +97,7 @@ export default function Tracker() {
             <span>Job Tracker</span>
           </div>
           <span className="spacer" />
-          <span className="avatar" title={email}>{email.charAt(0).toUpperCase()}</span>
-          <span className="nav-email">{email}</span>
-          <button className="ghost icon-btn" onClick={() => supabase.auth.signOut()} title="Sign out">
-            <LogOutIcon />
-            <span className="hide-sm">Sign out</span>
-          </button>
+          <AccountMenu email={email} />
         </div>
       </nav>
 

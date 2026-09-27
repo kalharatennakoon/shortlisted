@@ -21,6 +21,13 @@ Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
   Google is set up; GitHub just needs enabling in Supabase.
 - Keep side effects (URL cleanup) out of React state updaters; StrictMode runs them twice in dev.
 
+## Privacy & account deletion
+- `public.delete_my_account()` (migration `20260927170000`) is SECURITY DEFINER, deletes only `auth.uid()`'s
+  applications and auth user; executable by `authenticated` only. Keep the privacy page accurate if data
+  handling changes (new tables, analytics, third parties), and bump `PRIVACY_UPDATED` in `lib/config.ts`.
+- Dialogs opened from inside the navbar must be portalled to `document.body` (the bar's backdrop-filter
+  creates a containing block that traps `position: fixed`).
+
 ## Data model (mirrors the Notion database)
 Table `public.applications`, defined in `supabase/migrations/`:
 
@@ -47,13 +54,17 @@ src/
   lib/auth.tsx         AuthProvider + useAuth(): session, recovery flag, email-link errors
   lib/types.ts         Application type + enum constants
   lib/applications.ts  CRUD calls against the applications table
+  lib/account.ts       deleteMyAccount() via rpc + one-time 'account deleted' notice
+  lib/config.ts        Owner name, contact link, privacy 'last updated' date
   lib/stats.ts         Pure stat helpers (summary, by status, response by platform, per week)
   pages/Login.tsx      Sign in / sign up / forgot password; OAuth buttons for enabled providers
+  pages/Privacy.tsx    Plain-language privacy page (#/privacy, works signed in or out)
   pages/ResetPassword.tsx  Set a new password after a reset link (shown when recovery is true)
   pages/Tracker.tsx    Board (drag between status columns), table and calendar views, search
   components/CalendarView.tsx  Month calendar by Applied On (dots + agenda list on mobile)
   components/StatsView.tsx  Stats tab: stat tiles + weekly columns + bar lists, each with a table toggle
   components/ApplicationForm.tsx  Add/edit/delete modal
+  components/AccountMenu.tsx  Avatar menu: Privacy, Sign out, Delete account (typed DELETE confirm)
   components/Icons.tsx  Inline SVG icons + Logo
 supabase/migrations/   SQL migrations, run in order
 ```
@@ -87,6 +98,7 @@ supabase/migrations/   SQL migrations, run in order
 - [ ] Import from Notion CSV export (self-serve, for other users)
 - [ ] Interview dates and follow-up reminders
 - [x] Dashboard stats (applications per week, response rate by platform)
+- [x] Privacy page, sign-up privacy note, self-serve account deletion
 - [ ] Contacts / recruiter per application
 - [x] Password reset flow and Google sign-in (GitHub button ready once enabled in Supabase)
 - [ ] Tests (Vitest + React Testing Library)

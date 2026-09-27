@@ -7,7 +7,7 @@ Built with React + Vite, Supabase (auth + Postgres) and hosted on GitHub Pages.
 
 ### 1. Supabase
 1. Create a free project at [supabase.com](https://supabase.com).
-2. In **SQL Editor**, paste and run `supabase/migrations/20260927000000_init.sql`.
+2. In **SQL Editor**, run each file in `supabase/migrations/` in order (oldest first).
 3. Under **Authentication → URL Configuration**, set **Site URL** to your Pages URL
    (e.g. `https://<username>.github.io/job-tracker/`) and add `http://localhost:5173` to **Redirect URLs**.
 4. Copy the **Project URL** and **anon public key** from **Project Settings → API**.

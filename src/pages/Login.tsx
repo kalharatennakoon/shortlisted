@@ -1,4 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
+import { accountJustDeleted, clearAccountDeletedNotice } from '../lib/account'
 import { Logo } from '../components/Icons'
 import { useAuth } from '../lib/auth'
 import { appUrl, enabledOAuthProviders, supabase, type OAuthProvider } from '../lib/supabase'
@@ -26,6 +28,7 @@ function ProviderIcon({ provider }: { provider: OAuthProvider }) {
 
 export default function Login() {
   const { linkError, clearLinkError } = useAuth()
+  const [accountDeleted, setAccountDeleted] = useState(accountJustDeleted)
   const [mode, setMode] = useState<Mode>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -36,12 +39,14 @@ export default function Login() {
 
   useEffect(() => {
     enabledOAuthProviders().then(setProviders)
+    clearAccountDeletedNotice() // show the "account deleted" note only once
   }, [])
 
   const shownError = error ?? linkError
 
   function switchMode(next: Mode) {
     setMode(next)
+    setAccountDeleted(false)
     clearLinkError()
     setError(null)
     setMessage(null)
@@ -123,6 +128,9 @@ export default function Login() {
             />
           </label>
         )}
+        {accountDeleted && !message && !shownError && (
+          <p className="success">Your account and all your applications have been deleted.</p>
+        )}
         {shownError && <p className="error">{shownError}</p>}
         {message && <p className="success">{message}</p>}
         <button type="submit" className="primary" disabled={busy}>
@@ -138,6 +146,16 @@ export default function Login() {
             {mode === 'signup' ? 'Already have an account? Sign in' : 'Back to sign in'}
           </button>
         )}
+        <p className="auth-foot">
+          {mode === 'signup' ? (
+            <>
+              Only you can see your applications. Your password is never visible to anyone.{' '}
+              <Link to="/privacy">How your data is handled</Link>
+            </>
+          ) : (
+            <Link to="/privacy">Privacy</Link>
+          )}
+        </p>
       </form>
     </div>
   )

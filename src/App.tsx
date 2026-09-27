@@ -2,6 +2,7 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/auth'
 import { isConfigured } from './lib/supabase'
 import Login from './pages/Login'
+import Privacy from './pages/Privacy'
 import ResetPassword from './pages/ResetPassword'
 import Tracker from './pages/Tracker'
 
@@ -11,6 +12,7 @@ function Routed() {
   if (session && recovery) return <ResetPassword />
   return (
     <Routes>
+      <Route path="/privacy" element={<Privacy />} />
       <Route path="/login" element={session ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/" element={session ? <Tracker /> : <Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
