@@ -2,11 +2,13 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/auth'
 import { isConfigured } from './lib/supabase'
 import Login from './pages/Login'
+import ResetPassword from './pages/ResetPassword'
 import Tracker from './pages/Tracker'
 
 function Routed() {
-  const { session, loading } = useAuth()
+  const { session, loading, recovery } = useAuth()
   if (loading) return <p className="muted center">Loading…</p>
+  if (session && recovery) return <ResetPassword />
   return (
     <Routes>
       <Route path="/login" element={session ? <Navigate to="/" replace /> : <Login />} />

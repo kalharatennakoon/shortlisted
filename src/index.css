@@ -65,6 +65,11 @@ label > input, label > select, label > textarea { color: var(--text); }
 .auth-wrap { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
 .auth-card { width: 100%; max-width: 380px; padding: 28px; display: flex; flex-direction: column; gap: 14px; }
 
+button.oauth { display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 500; }
+.divider { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; }
+.divider::before, .divider::after { content: ''; flex: 1; border-top: 1px solid var(--border); }
+.label-row { display: flex; justify-content: space-between; align-items: baseline; }
+
 /* Layout */
 .page { max-width: 1400px; margin: 0 auto; padding: 20px 16px 40px; }
 .topbar, .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

@@ -12,6 +12,15 @@ Users sign up, log in, and track their own applications on a status board and in
 There is no custom backend. Row Level Security is the only thing protecting user data.
 Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
 
+## Auth notes
+- `flowType: 'pkce'` is required: Supabase then returns with `?code=` (query), not `#access_token=` (hash), so it
+  doesn't collide with HashRouter. The library exchanges the code and strips it from the URL.
+- PKCE links (reset, confirm) only work in the browser that requested them; `lib/auth.tsx` shows a friendly error otherwise.
+- Redirects go to `appUrl()` (origin + path). Supabase must allow it: Site URL = the Pages URL, plus `http://localhost:5173/**`.
+- OAuth buttons render only for providers enabled in Supabase (read from the public `/auth/v1/settings`).
+  Google is set up; GitHub just needs enabling in Supabase.
+- Keep side effects (URL cleanup) out of React state updaters; StrictMode runs them twice in dev.
+
 ## Data model (mirrors the Notion database)
 Table `public.applications`, defined in `supabase/migrations/`:
 
@@ -34,12 +43,13 @@ The enum values in SQL and the constants in `src/lib/types.ts` must match exactl
 ## Layout
 ```
 src/
-  lib/supabase.ts      Supabase client (reads VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY)
-  lib/auth.tsx         AuthProvider + useAuth() session hook
+  lib/supabase.ts      Supabase client (PKCE flow), appUrl(), enabledOAuthProviders()
+  lib/auth.tsx         AuthProvider + useAuth(): session, recovery flag, email-link errors
   lib/types.ts         Application type + enum constants
   lib/applications.ts  CRUD calls against the applications table
   lib/stats.ts         Pure stat helpers (summary, by status, response by platform, per week)
-  pages/Login.tsx      Sign in / sign up
+  pages/Login.tsx      Sign in / sign up / forgot password; OAuth buttons for enabled providers
+  pages/ResetPassword.tsx  Set a new password after a reset link (shown when recovery is true)
   pages/Tracker.tsx    Board (drag between status columns), table and calendar views, search
   components/CalendarView.tsx  Month calendar by Applied On (dots + agenda list on mobile)
   components/StatsView.tsx  Stats tab: stat tiles + weekly columns + bar lists, each with a table toggle
@@ -70,5 +80,5 @@ supabase/migrations/   SQL migrations, run in order
 - [ ] Interview dates and follow-up reminders
 - [x] Dashboard stats (applications per week, response rate by platform)
 - [ ] Contacts / recruiter per application
-- [ ] Password reset flow and OAuth (Google/GitHub) sign-in
+- [x] Password reset flow and Google sign-in (GitHub button ready once enabled in Supabase)
 - [ ] Tests (Vitest + React Testing Library)
