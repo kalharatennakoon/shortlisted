@@ -65,7 +65,7 @@ src/
   components/StatsView.tsx  Stats tab: stat tiles + weekly columns + bar lists, each with a table toggle
   components/ApplicationForm.tsx  Add/edit/delete modal
   components/AccountMenu.tsx  Avatar menu: Privacy, Sign out, Delete account (typed DELETE confirm)
-  components/Icons.tsx  Inline SVG icons + Logo
+  components/Icons.tsx  Inline SVG icons + Logo (SVG, unique gradient ids via useId)
 supabase/migrations/   SQL migrations, run in order
 ```
 
@@ -86,6 +86,9 @@ supabase/migrations/   SQL migrations, run in order
   Table hides Company/Platform/Priority under 860px (company shows under the role instead).
 - Status colours live in `.status-*` classes as `--st-bg/--st-fg/--st-dot`; always shown with a text label.
 - Icons are inline SVGs in `components/Icons.tsx` (no icon library).
+- Logo = stacked kanban cards with a check on a blue→violet tile (Kalhara chose it). The same artwork lives in
+  `Logo` (Icons.tsx), `public/favicon.svg`, `public/icon-192.png`, `public/icon-512.png`, `public/apple-touch-icon.png`;
+  change them together. `public/manifest.webmanifest` makes the site installable to a phone home screen.
 
 ## Charts
 - Hand-built HTML/CSS, no chart library. One series per chart in `--series-1` (light `#2a78d6`, dark `#3987e5`, both validated for contrast on the app surfaces).

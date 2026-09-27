@@ -1,4 +1,4 @@
-import type { ReactNode, SVGProps } from 'react'
+import { useId, type ReactNode, type SVGProps } from 'react'
 
 type IconProps = SVGProps<SVGSVGElement> & { size?: number }
 
@@ -95,10 +95,41 @@ export const TrashIcon = (p: IconProps) => (
   </Icon>
 )
 
+/**
+ * App logo: stacked kanban cards with a check on the front card (blue→violet tile).
+ * Same artwork as public/favicon.svg and public/icon-512.png; keep them in sync.
+ */
 export function Logo({ size = 32 }: { size?: number }) {
+  // Unique, URL-safe gradient ids so several logos on one page don't clash
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '')
+  const bg = `logo-bg-${uid}`
+  const shine = `logo-shine-${uid}`
+  const ink = `logo-ink-${uid}`
   return (
-    <span className="logo" style={{ width: size, height: size }}>
-      <BriefcaseIcon size={size * 0.55} />
-    </span>
+    <svg className="logo" width={size} height={size} viewBox="0 0 512 512" role="img" aria-label="Job Tracker logo">
+      <defs>
+        <linearGradient id={bg} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#3b82f6" />
+          <stop offset="0.55" stopColor="#4f46e5" />
+          <stop offset="1" stopColor="#7c3aed" />
+        </linearGradient>
+        <radialGradient id={shine} cx="0.2" cy="0.1" r="0.8">
+          <stop offset="0" stopColor="#fff" stopOpacity="0.28" />
+          <stop offset="0.6" stopColor="#fff" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id={ink} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#3b82f6" />
+          <stop offset="1" stopColor="#7c3aed" />
+        </linearGradient>
+      </defs>
+      <rect width="512" height="512" rx="116" fill={`url(#${bg})`} />
+      <rect width="512" height="512" rx="116" fill={`url(#${shine})`} />
+      <g transform="translate(-14 -14)">
+        <rect x="104" y="150" width="210" height="150" rx="34" fill="#fff" fillOpacity="0.45" transform="rotate(-8 209 225)" />
+        <rect x="150" y="196" width="210" height="150" rx="34" fill="#fff" fillOpacity="0.7" transform="rotate(-3 255 271)" />
+        <rect x="198" y="244" width="210" height="150" rx="34" fill="#fff" />
+        <path d="M258 322 l26 26 l56 -58" fill="none" stroke={`url(#${ink})`} strokeWidth="24" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+    </svg>
   )
 }

@@ -112,12 +112,7 @@ label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-w
 .show-md { display: none; }
 
 /* ---------- Brand ---------- */
-.logo {
-  display: inline-grid; place-items: center; flex: none;
-  border-radius: 9px; color: #fff;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
-}
+.logo { display: block; flex: none; border-radius: 22%; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3); }
 
 /* ---------- Auth screens ---------- */
 .auth-wrap {
