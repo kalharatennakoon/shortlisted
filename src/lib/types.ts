@@ -28,3 +28,26 @@ export interface Application {
 }
 
 export type ApplicationInput = Omit<Application, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+
+// ---------- Documents (supabase/migrations/20260928000000_documents.sql) ----------
+
+export const DOCUMENT_KINDS = ['CV', 'Cover letter', 'Portfolio', 'Certificate', 'Other'] as const
+export type DocumentKind = (typeof DOCUMENT_KINDS)[number]
+
+export interface JobDocument {
+  id: string
+  user_id: string
+  name: string
+  kind: DocumentKind
+  file_name: string
+  storage_path: string
+  size_bytes: number
+  mime_type: string | null
+  created_at: string
+}
+
+/** Link row: which document was sent with which application */
+export interface DocumentLink {
+  application_id: string
+  document_id: string
+}

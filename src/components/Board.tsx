@@ -23,6 +23,7 @@ import {
 import { fmtDate, statusClass } from '../lib/format'
 import { STATUSES, type Application, type Status } from '../lib/types'
 import { NextBadge } from './Badges'
+import { DocBadge } from './DocBadge'
 import { BuildingIcon, FlagIcon } from './Icons'
 
 interface Props {
@@ -68,7 +69,10 @@ function CardBody({ app }: { app: Application }) {
       )}
       <NextBadge app={app} />
       <span className="job-meta">
-        <span>{fmtDate(app.applied_on)}</span>
+        <span className="job-meta-left">
+          <span>{fmtDate(app.applied_on)}</span>
+          <DocBadge appId={app.id} />
+        </span>
         {app.priority && (
           <span className={`priority priority-${app.priority.toLowerCase()}`}>
             <FlagIcon size={12} />

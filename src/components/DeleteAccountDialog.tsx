@@ -32,7 +32,7 @@ export default function DeleteAccountDialog({ onClose }: { onClose: () => void }
           </button>
         </header>
         <p className="muted">
-          This permanently deletes your account and <strong>all your applications</strong>. It can't be undone.
+          This permanently deletes your account, <strong>all your applications</strong> and <strong>uploaded documents</strong>. It can't be undone.
         </p>
         <label>
           Type {CONFIRM_WORD} to confirm

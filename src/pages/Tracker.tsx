@@ -6,6 +6,9 @@ import StatsView from '../components/StatsView'
 import AppShell from '../components/AppShell'
 import UpNext from '../components/UpNext'
 import ImportExportDialog from '../components/ImportExportDialog'
+import { DocBadge } from '../components/DocBadge'
+import { DocCounts } from '../lib/docCounts'
+import { listDocuments, listLinks, setApplicationDocuments } from '../lib/documents'
 import Board from '../components/Board'
 import { NextBadge, StatusPill } from '../components/Badges'
 import { fmtDate } from '../lib/format'
@@ -26,7 +29,7 @@ import {
   listApplications,
   updateApplication,
 } from '../lib/applications'
-import type { Application, Status } from '../lib/types'
+import type { Application, DocumentLink, JobDocument, Status } from '../lib/types'
 
 type View = 'board' | 'table' | 'calendar' | 'stats'
 type Editing = { mode: 'new'; date?: string } | { mode: 'edit'; app: Application } | null
@@ -46,13 +49,38 @@ export default function Tracker() {
   const [query, setQuery] = useState('')
   const [editing, setEditing] = useState<Editing>(null)
   const [ioOpen, setIoOpen] = useState(false)
+  const [docs, setDocs] = useState<JobDocument[]>([])
+  const [links, setLinks] = useState<DocumentLink[]>([])
 
   useEffect(() => {
     listApplications()
       .then(setApps)
       .catch((e) => setError(errorMessage(e)))
       .finally(() => setLoading(false))
+    // Documents are secondary: if they fail to load (e.g. migration not run yet), the tracker still works
+    Promise.all([listDocuments(), listLinks()])
+      .then(([d, l]) => {
+        setDocs(d)
+        setLinks(l)
+      })
+      .catch(() => {})
   }, [])
+
+  const docCounts = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const l of links) m.set(l.application_id, (m.get(l.application_id) ?? 0) + 1)
+    return m
+  }, [links])
+  const docIdsFor = (appId: string) => links.filter((l) => l.application_id === appId).map((l) => l.document_id)
+
+  async function saveDocuments(appId: string, next: string[]) {
+    const current = docIdsFor(appId)
+    await setApplicationDocuments(appId, current, next)
+    setLinks((ls) => [
+      ...ls.filter((l) => l.application_id !== appId),
+      ...next.map((document_id) => ({ application_id: appId, document_id })),
+    ])
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -86,6 +114,7 @@ export default function Tracker() {
 
   return (
     <AppShell>
+      <DocCounts.Provider value={docCounts}>
         <header className="page-head">
           <div>
             <h1>Applications</h1>
@@ -176,7 +205,7 @@ export default function Tracker() {
                 {filtered.map((a) => (
                   <tr key={a.id} onClick={() => setEditing({ mode: 'edit', app: a })}>
                     <td>
-                      <span className="cell-title">{a.name}</span>
+                      <span className="cell-title">{a.name}</span> <DocBadge appId={a.id} />
                       {a.company && <span className="cell-sub show-md">{a.company}</span>}
                     </td>
                     <td className="hide-md">{a.company ?? '—'}</td>
@@ -210,13 +239,26 @@ export default function Tracker() {
           initial={editing.mode === 'edit' ? editing.app : undefined}
           initialDate={editing.mode === 'new' ? editing.date : undefined}
           onClose={() => setEditing(null)}
-          onSave={async (input) => {
+          docs={docs}
+          initialDocIds={editing.mode === 'edit' ? docIdsFor(editing.app.id) : []}
+          onDocUploaded={(doc) => setDocs((ds) => [doc, ...ds])}
+          onSave={async (input, documentIds) => {
             if (editing.mode === 'edit') {
               const updated = await updateApplication(editing.app.id, input)
               setApps((xs) => xs.map((x) => (x.id === updated.id ? updated : x)))
+              await saveDocuments(updated.id, documentIds)
             } else {
               const created = await createApplication(input)
               setApps((xs) => [created, ...xs])
+              if (documentIds.length) {
+                // If attaching fails, the application exists: switch to editing it so a retry doesn't duplicate it
+                try {
+                  await saveDocuments(created.id, documentIds)
+                } catch (e) {
+                  setEditing({ mode: 'edit', app: created })
+                  throw e
+                }
+              }
             }
           }}
           onDelete={
@@ -224,6 +266,7 @@ export default function Tracker() {
               ? async () => {
                   await deleteApplication(editing.app.id)
                   setApps((xs) => xs.filter((x) => x.id !== editing.app.id))
+                  setLinks((ls) => ls.filter((l) => l.application_id !== editing.app.id)) // links cascade in the DB
                 }
               : undefined
           }
@@ -238,6 +281,7 @@ export default function Tracker() {
           onImported={() => listApplications().then(setApps).catch((e) => setError(errorMessage(e)))}
         />
       )}
+      </DocCounts.Provider>
     </AppShell>
   )
 }

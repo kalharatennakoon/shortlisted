@@ -4,6 +4,7 @@ import { isConfigured } from './lib/supabase'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import { accountJustDeleted } from './lib/account'
+import Documents from './pages/Documents'
 import Privacy from './pages/Privacy'
 import Profile from './pages/Profile'
 import ResetPassword from './pages/ResetPassword'
@@ -19,6 +20,7 @@ function Routed() {
   return (
     <Routes>
       <Route path="/privacy" element={<Privacy />} />
+      <Route path="/documents" element={session ? <Documents /> : <Navigate to="/login" replace />} />
       <Route path="/profile" element={session ? <Profile /> : <Navigate to="/login" replace />} />
       <Route path="/login" element={session ? <Navigate to="/" replace /> : <Login />} />
       <Route

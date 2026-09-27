@@ -3,7 +3,7 @@ import Footer from '../components/Footer'
 import {
   BellIcon,
   BoardIcon,
-  CalendarIcon,
+  FileIcon,
   ChartIcon,
   CheckIcon,
   Logo,
@@ -23,7 +23,7 @@ const FEATURES = [
   {
     icon: <BoardIcon size={20} />,
     title: 'Drag-and-drop board',
-    text: 'See every application by status, from Applied to Offered, and move cards as things change.',
+    text: 'See every application by status, from Applied to Offered, move cards as things change, or view it all on a calendar.',
   },
   {
     icon: <BellIcon size={20} />,
@@ -31,9 +31,9 @@ const FEATURES = [
     text: 'Add interviews and follow-ups with a date. "Up next" shows what’s due, overdue items first.',
   },
   {
-    icon: <CalendarIcon size={20} />,
-    title: 'Calendar view',
-    text: 'When you applied and what’s coming up, laid out by month.',
+    icon: <FileIcon size={20} />,
+    title: 'Know which CV you sent',
+    text: 'Keep every CV and cover letter version in one place and attach them to the applications you sent them with.',
   },
   {
     icon: <ChartIcon size={20} />,

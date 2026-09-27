@@ -34,11 +34,19 @@ export default function Privacy() {
             Any <strong>profile details</strong> you choose to add (name, target role, location, LinkedIn link).
           </li>
           <li>The <strong>applications you add</strong>: role, company, dates, status, links, notes and next steps (like interview or follow-up dates).</li>
+          <li>
+            Any <strong>documents you upload</strong> (such as CVs and cover letters), up to 5 MB each, and which
+            applications you attached them to.
+          </li>
         </ul>
 
         <h2>Who can see it</h2>
         <ul>
           <li><strong>Only you</strong> can see your applications in the app. Database security rules stop other users from reading them.</li>
+          <li>
+            Documents are kept in <strong>private</strong> file storage. They are never public: the app opens them
+            with a link that works only for you and expires after a minute.
+          </li>
           <li>
             As the person running the service, the site owner can technically see email addresses and data in the
             database admin panel. They <strong>do not look at, share, or sell</strong> your applications.
@@ -57,14 +65,15 @@ export default function Privacy() {
         <p>
           On the Applications page, <strong>Import / export</strong> → <strong>Download CSV</strong> gives you every
           application you've added, in a file that opens in Excel or Google Sheets. CSV files you import are read in
-          your browser; only the rows you confirm are saved to your account.
+          your browser; only the rows you confirm are saved to your account. Documents can be downloaded one by one
+          on the Documents page.
         </p>
 
         <h2>Deleting your data</h2>
         <p>
           You can delete your account at any time: open the account menu (your initial in the top-right corner) →{' '}
-          <strong>Profile &amp; settings</strong> → <strong>Delete account</strong>. This permanently removes your account and every application you added,
-          straight away.
+          <strong>Profile &amp; settings</strong> → <strong>Delete account</strong>. This permanently removes your account, every application you added and
+          every document you uploaded, straight away. You can also delete single documents on the Documents page.
         </p>
 
         <h2>Questions</h2>

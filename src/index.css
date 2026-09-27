@@ -414,6 +414,47 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; }
 .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
 .modal-head h2 { font-size: 18px; font-weight: 600; }
 
+/* ---------- Documents ---------- */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.doc-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 500; color: var(--muted); vertical-align: middle; }
+.job-meta-left { display: inline-flex; align-items: center; gap: 10px; }
+.doc-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.doc-row, .doc-pick { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); min-width: 0; }
+.doc-row-icon, .doc-pick > svg { color: var(--accent); flex: none; }
+.doc-row-text { display: flex; flex-direction: column; min-width: 0; flex: 1; text-align: left; line-height: 1.35; }
+.doc-row-name { font-weight: 500; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-picker { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; padding: 8px; background: var(--canvas); border-radius: var(--radius-sm); }
+button.doc-pick { width: 100%; font-weight: 400; padding: 8px 10px; }
+button.doc-pick:hover { border-color: var(--accent); background: var(--accent-soft); }
+.doc-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.doc-actions button.chip { display: inline-flex; align-items: center; gap: 5px; }
+.upload-panel { width: 100%; display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid #bfd3fe; background: var(--accent-soft); border-radius: var(--radius-sm); }
+.upload-file { overflow-wrap: anywhere; }
+.upload-fields, .doc-edit { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 10px; }
+.upload-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.doc-edit .upload-actions { grid-column: 1 / -1; }
+.upload-error { width: 100%; }
+.docs-head { align-items: center; }
+.docs-head > button, .docs-head .upload-panel { flex: none; }
+.docs-head .upload-panel { width: min(100%, 420px); }
+.docs-empty { padding: 36px 24px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.docs-empty > svg { color: var(--accent); margin-bottom: 4px; }
+.docs-empty h2 { font-size: 17px; font-weight: 600; }
+.docs-empty p { max-width: 460px; }
+.docs-list { list-style: none; margin: 0; padding: 0; }
+.doc-item { display: flex; gap: 14px; padding: 16px 18px; align-items: flex-start; }
+.doc-item + .doc-item { border-top: 1px solid var(--border); }
+.doc-item-icon { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); flex: none; }
+.doc-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.doc-item-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.doc-item-title strong { overflow-wrap: anywhere; }
+.kind-pill { font-size: 11.5px; font-weight: 500; padding: 1px 8px; border-radius: 999px; background: var(--canvas); border: 1px solid var(--border); color: var(--text-2); }
+.doc-used { color: var(--text-2); overflow-wrap: anywhere; }
+.doc-item-actions { display: flex; gap: 2px; flex: none; }
+button.danger-icon:hover:not(:disabled) { color: var(--danger); background: #fef2f2; }
+.doc-confirm { margin-top: 8px; padding: 10px 12px; border-radius: var(--radius-sm); background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; font-size: 13px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
+.doc-confirm-actions { display: flex; gap: 8px; }
+
 /* ---------- Import & export dialog ---------- */
 .head-actions { display: flex; gap: 8px; align-items: center; }
 .io-modal { max-width: 580px; }
@@ -537,6 +578,10 @@ label.check input { width: auto; flex: none; margin: 3px 0 0; accent-color: var(
   .viz-two { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 700px) {
+  .upload-fields, .doc-edit { grid-template-columns: 1fr; }
+  .doc-item { flex-wrap: wrap; padding: 14px; }
+  .doc-item-actions { width: 100%; justify-content: flex-end; margin-top: -4px; }
+  .docs-head { flex-wrap: wrap; }
   .io-modal .actions button { flex: 1 1 100%; }
   .io-modal .actions .spacer { display: none; }
   .io-modal .actions button.primary { order: -1; }

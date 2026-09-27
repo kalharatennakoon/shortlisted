@@ -1,13 +1,18 @@
 import { useState, type FormEvent } from 'react'
 import { errorMessage } from '../lib/errors'
 import { XIcon } from './Icons'
+import AttachedDocuments from './AttachedDocuments'
 import { addDays, todayKey } from '../lib/dates'
-import { NEXT_STEPS, PLATFORMS, PRIORITIES, STATUSES, type Application, type ApplicationInput } from '../lib/types'
+import { NEXT_STEPS, PLATFORMS, PRIORITIES, STATUSES, type Application, type ApplicationInput, type JobDocument } from '../lib/types'
 
 interface Props {
   initial?: Application
   initialDate?: string
-  onSave: (input: ApplicationInput) => Promise<void>
+  /** Saves the application and makes its attached documents match `documentIds` */
+  onSave: (input: ApplicationInput, documentIds: string[]) => Promise<void>
+  docs: JobDocument[]
+  initialDocIds?: string[]
+  onDocUploaded: (doc: JobDocument) => void
   onDelete?: () => Promise<void>
   onClose: () => void
 }
@@ -31,10 +36,13 @@ const empty: ApplicationInput = {
   next_date: null,
 }
 
-export default function ApplicationForm({ initial, initialDate, onSave, onDelete, onClose }: Props) {
+export default function ApplicationForm({
+  initial, initialDate, onSave, onDelete, onClose, docs, initialDocIds = [], onDocUploaded,
+}: Props) {
   const [form, setForm] = useState<ApplicationInput>(
     initial ?? { ...empty, applied_on: initialDate ?? empty.applied_on },
   )
+  const [docIds, setDocIds] = useState<string[]>(initialDocIds)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -59,7 +67,7 @@ export default function ApplicationForm({ initial, initialDate, onSave, onDelete
     const clean = Object.fromEntries(
       Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]),
     ) as ApplicationInput
-    run(() => onSave(clean))
+    run(() => onSave(clean, docIds))
   }
 
   return (
@@ -154,6 +162,7 @@ export default function ApplicationForm({ initial, initialDate, onSave, onDelete
           Job posting URL
           <input type="url" value={form.job_url ?? ''} onChange={(e) => set('job_url', e.target.value)} />
         </label>
+        <AttachedDocuments docs={docs} selected={docIds} onChange={setDocIds} onUploaded={onDocUploaded} />
         <label>
           Notes
           <textarea rows={4} value={form.notes ?? ''} onChange={(e) => set('notes', e.target.value)} />

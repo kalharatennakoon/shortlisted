@@ -1,10 +1,14 @@
+import { deleteAllMyFiles } from './documents'
 import { supabase } from './supabase'
 
 /**
- * Permanently deletes the signed-in user's account and all their applications
+ * Permanently deletes the signed-in user's account, all their applications and uploaded documents
  * (see supabase/migrations/*_delete_my_account.sql), then clears the local session.
  */
 export async function deleteMyAccount(): Promise<void> {
+  // Files first: Storage objects can't be deleted from SQL, and they'd be left behind otherwise.
+  // If this fails, stop before the account is deleted so nothing is orphaned.
+  await deleteAllMyFiles()
   const { error } = await supabase.rpc('delete_my_account')
   if (error) throw error
   // The account no longer exists on the server, so only clear this browser's session.

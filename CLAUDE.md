@@ -64,6 +64,19 @@ Table `public.applications`, defined in `supabase/migrations/`:
 | `next_date` | (new) | date; form requires both or neither |
 | `user_id` | (owner) | uuid → auth.users, defaults to `auth.uid()` |
 
+Documents (migration `20260928000000_documents.sql`, not in Notion):
+- `public.documents`: the user's library (name, kind enum CV / Cover letter / Portfolio / Certificate / Other,
+  file_name, storage_path, size_bytes ≤ 5 MB, mime_type). Only `name` and `kind` are updatable (column grant).
+- `public.application_documents`: link table (application_id, document_id), cascades from both sides. Insert
+  policy checks both the application and the document belong to `auth.uid()`.
+- Files: **private** Storage bucket `documents`, key `<user id>/<document id>/<safe name>`; storage.objects
+  policies allow only the owner's folder. Bucket enforces 5 MB and the allowed MIME types.
+- Limit 30 documents per user (`my_document_count()`, security definer, used by both insert policies).
+- Opening = 60-second signed URL (never public URLs). Deleting a doc removes the row then the file; deleting an
+  application only removes links (the document stays in the library, it may be used elsewhere).
+- Account deletion: `lib/account.ts` removes the user's files via the Storage API **before** calling
+  `delete_my_account()` (Supabase blocks deleting storage objects from SQL); it stops if that fails.
+
 Notion status groups: To-do = Applied, Interviewed · In progress = Offered · Complete = Accepted, Rejected, No Response.
 Notion views: a **board grouped by Status** (shows Name, Company, Applied On) and a **calendar by Applied On**.
 
@@ -80,7 +93,10 @@ src/
   lib/importExport.ts  Pure CSV <-> Application mapping: loose header aliases, case-insensitive enums + aliases,
                        dates (ISO, Notion "September 12, 2026", d/m/y day-first when ambiguous), duplicate flag
                        (same role+company+applied date), per-row warnings/errors, 2,000-row cap
-  lib/account.ts       deleteMyAccount() via rpc + one-time 'account deleted' notice
+  lib/documents.ts     Document library: upload (validate, upload file, insert row, clean up on failure), list, links,
+                       setApplicationDocuments(diff), open/download via signed URL, delete, guessKind(file name)
+  lib/docCounts.ts     React context: application id -> attached document count (for board/table badges)
+  lib/account.ts       deleteMyAccount(): delete Storage files, then rpc; one-time 'account deleted' notice
   lib/config.ts        Owner name, contact email (jobtracker.app.lk@gmail.com), APP_VERSION, privacy date
   lib/dates.ts         Local YYYY-MM-DD helpers (todayKey, addDays, daysBetween). Never use toISOString for "today"
   lib/nextSteps.ts     Up-next logic: plannedSteps (overdue first), urgency/labels, needsFollowUp (Applied 14+ days, nothing planned)
@@ -100,7 +116,13 @@ src/
   components/Badges.tsx  NextBadge + StatusPill (shared by board and table)
   components/CalendarView.tsx  Month calendar by Applied On (dots + agenda list on mobile)
   components/StatsView.tsx  Stats tab: stat tiles + weekly columns + bar lists, each with a table toggle
-  components/ApplicationForm.tsx  Add/edit/delete modal (incl. next step + quick dates)
+  components/ApplicationForm.tsx  Add/edit/delete modal (incl. next step + quick dates, documents). onSave gets
+                       (input, documentIds); Tracker saves the app then syncs links
+  components/AttachedDocuments.tsx  Documents fieldset in the form: attached list, pick from library, upload new
+  components/DocumentUpload.tsx  Upload button + inline confirm (name, kind). Not a <form>: it sits inside the app form
+  components/DocBadge.tsx  Paperclip + count on board cards and table rows
+  pages/Documents.tsx  #/documents library: upload, open, download, rename/change type, delete (inline confirm),
+                       "Sent with" list. Linked from the account menu and the form
   components/ImportExportDialog.tsx  Import (pick/drop CSV → review counts, preview, warnings → import) + export
                        CSV + template download. Portalled. Tracker reloads the list after an import
   components/UpNext.tsx  "Up next" strip above board/table/calendar: Done, follow-up nudges (Follow up today / Mark no response)
@@ -153,6 +175,7 @@ supabase/migrations/   SQL migrations, run in order
 - [x] Dashboard stats (applications per week, response rate by platform)
 - [x] Privacy page, sign-up privacy note, self-serve account deletion
 - [x] Profile page (basic details, change password, delete account)
+- [x] Documents per application (library of CVs/cover letters, attach to many applications)
 - [ ] Contacts / recruiter per application
 - [x] Password reset flow and Google sign-in (GitHub button ready once enabled in Supabase)
 - [ ] Tests (Vitest + React Testing Library)

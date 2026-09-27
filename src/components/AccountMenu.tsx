@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { displayName } from '../lib/profile'
 import { supabase } from '../lib/supabase'
-import { LogOutIcon, ShieldIcon, UserIcon } from './Icons'
+import { FileIcon, LogOutIcon, ShieldIcon, UserIcon } from './Icons'
 
 export default function AccountMenu() {
   const { session } = useAuth()
@@ -39,6 +39,9 @@ export default function AccountMenu() {
           </div>
           <Link to="/profile" role="menuitem" className="menu-item" onClick={() => setOpen(false)}>
             <UserIcon /> Profile & settings
+          </Link>
+          <Link to="/documents" role="menuitem" className="menu-item" onClick={() => setOpen(false)}>
+            <FileIcon /> Documents
           </Link>
           <Link to="/privacy" role="menuitem" className="menu-item" onClick={() => setOpen(false)}>
             <ShieldIcon /> Privacy

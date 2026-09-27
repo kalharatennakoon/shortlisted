@@ -210,7 +210,7 @@ export default function Profile() {
             <span className="settings-icon danger"><TrashIcon size={18} /></span>
             <div>
               <h2>Delete account</h2>
-              <p className="muted small">Permanently delete your account and all your applications. This can't be undone.</p>
+              <p className="muted small">Permanently delete your account, all your applications and documents. This can't be undone.</p>
             </div>
             <span className="spacer" />
             <button className="danger" onClick={() => setDeleting(true)}>Delete account</button>
