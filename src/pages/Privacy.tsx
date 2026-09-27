@@ -53,6 +53,13 @@ export default function Privacy() {
           The website is hosted on GitHub Pages.
         </p>
 
+        <h2>Taking your data with you</h2>
+        <p>
+          On the Applications page, <strong>Import / export</strong> → <strong>Download CSV</strong> gives you every
+          application you've added, in a file that opens in Excel or Google Sheets. CSV files you import are read in
+          your browser; only the rows you confirm are saved to your account.
+        </p>
+
         <h2>Deleting your data</h2>
         <p>
           You can delete your account at any time: open the account menu (your initial in the top-right corner) →{' '}

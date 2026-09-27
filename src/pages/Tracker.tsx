@@ -5,6 +5,7 @@ import CalendarView from '../components/CalendarView'
 import StatsView from '../components/StatsView'
 import AppShell from '../components/AppShell'
 import UpNext from '../components/UpNext'
+import ImportExportDialog from '../components/ImportExportDialog'
 import Board from '../components/Board'
 import { NextBadge, StatusPill } from '../components/Badges'
 import { fmtDate } from '../lib/format'
@@ -17,6 +18,7 @@ import {
   PlusIcon,
   SearchIcon,
   TableIcon,
+  UploadIcon,
 } from '../components/Icons'
 import {
   createApplication,
@@ -43,6 +45,7 @@ export default function Tracker() {
   const [view, setView] = useState<View>('board')
   const [query, setQuery] = useState('')
   const [editing, setEditing] = useState<Editing>(null)
+  const [ioOpen, setIoOpen] = useState(false)
 
   useEffect(() => {
     listApplications()
@@ -92,10 +95,16 @@ export default function Tracker() {
               </p>
             )}
           </div>
-          <button className="primary" onClick={() => setEditing({ mode: 'new' })}>
-            <PlusIcon />
-            <span>New<span className="hide-sm"> application</span></span>
-          </button>
+          <div className="head-actions">
+            <button className="secondary" onClick={() => setIoOpen(true)} aria-label="Import or export CSV" title="Import or export CSV">
+              <UploadIcon />
+              <span className="hide-sm">Import / export</span>
+            </button>
+            <button className="primary" onClick={() => setEditing({ mode: 'new' })}>
+              <PlusIcon />
+              <span>New<span className="hide-sm"> application</span></span>
+            </button>
+          </div>
         </header>
 
         <div className="toolbar">
@@ -116,6 +125,18 @@ export default function Tracker() {
         </div>
 
         {error && <p className="error">{error}</p>}
+        {!loading && apps.length === 0 && (
+          <div className="card empty-hint">
+            <p>
+              <strong>Already tracking applications somewhere else?</strong>{' '}
+              <span className="muted">Bring them in from Notion, Excel or Google Sheets as a CSV.</span>
+            </p>
+            <button className="secondary" onClick={() => setIoOpen(true)}>
+              <UploadIcon />
+              Import CSV
+            </button>
+          </div>
+        )}
         {!loading && view !== 'stats' && (
           <UpNext
             apps={apps}
@@ -206,6 +227,15 @@ export default function Tracker() {
                 }
               : undefined
           }
+        />
+      )}
+      {ioOpen && (
+        <ImportExportDialog
+          apps={apps}
+          onClose={() => setIoOpen(false)}
+          // Reload rather than merge: keeps the server's applied_on ordering, and after a partial
+          // failure it shows exactly what was saved
+          onImported={() => listApplications().then(setApps).catch((e) => setError(errorMessage(e)))}
         />
       )}
     </AppShell>

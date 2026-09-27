@@ -26,3 +26,17 @@ export async function deleteApplication(id: string): Promise<void> {
   const { error } = await supabase.from('applications').delete().eq('id', id)
   if (error) throw error
 }
+
+/** Bulk insert (CSV import). Chunked so a big file stays under request size limits. */
+export async function createApplications(inputs: ApplicationInput[]): Promise<Application[]> {
+  const created: Application[] = []
+  for (let i = 0; i < inputs.length; i += 200) {
+    const { data, error } = await supabase.from('applications').insert(inputs.slice(i, i + 200)).select()
+    if (error) {
+      if (created.length) throw new Error(`Imported ${created.length} of ${inputs.length}, then stopped: ${error.message}`)
+      throw error
+    }
+    created.push(...(data as Application[]))
+  }
+  return created
+}

@@ -54,7 +54,7 @@ const FEATURES = [
 
 const STEPS = [
   { title: 'Create a free account', text: 'Sign up with your email or Google in seconds.' },
-  { title: 'Add your applications', text: 'Role, company, date, and the next step if there is one.' },
+  { title: 'Add your applications', text: 'Role, company, date and the next step, or import them from a Notion, Excel or Sheets CSV.' },
   { title: 'Stay on top of it', text: 'Move cards as you hear back, tick off next steps and follow up on time.' },
 ]
 

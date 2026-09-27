@@ -75,7 +75,11 @@ src/
   lib/supabase.ts      Supabase client (PKCE flow), appUrl(), enabledOAuthProviders()
   lib/auth.tsx         AuthProvider + useAuth(): session, recovery flag, email-link errors
   lib/types.ts         Application type + enum constants
-  lib/applications.ts  CRUD calls against the applications table
+  lib/applications.ts  CRUD calls against the applications table (+ createApplications: chunked bulk insert)
+  lib/csv.ts           RFC 4180 parse (BOM, quoted newlines, ';' auto-detect) / toCsv (BOM, CRLF, formula-injection guard)
+  lib/importExport.ts  Pure CSV <-> Application mapping: loose header aliases, case-insensitive enums + aliases,
+                       dates (ISO, Notion "September 12, 2026", d/m/y day-first when ambiguous), duplicate flag
+                       (same role+company+applied date), per-row warnings/errors, 2,000-row cap
   lib/account.ts       deleteMyAccount() via rpc + one-time 'account deleted' notice
   lib/config.ts        Owner name, contact email (jobtracker.app.lk@gmail.com), APP_VERSION, privacy date
   lib/dates.ts         Local YYYY-MM-DD helpers (todayKey, addDays, daysBetween). Never use toISOString for "today"
@@ -97,6 +101,8 @@ src/
   components/CalendarView.tsx  Month calendar by Applied On (dots + agenda list on mobile)
   components/StatsView.tsx  Stats tab: stat tiles + weekly columns + bar lists, each with a table toggle
   components/ApplicationForm.tsx  Add/edit/delete modal (incl. next step + quick dates)
+  components/ImportExportDialog.tsx  Import (pick/drop CSV → review counts, preview, warnings → import) + export
+                       CSV + template download. Portalled. Tracker reloads the list after an import
   components/UpNext.tsx  "Up next" strip above board/table/calendar: Done, follow-up nudges (Follow up today / Mark no response)
   components/AppShell.tsx  Signed-in frame: navbar (logo → home, AccountMenu) + main + Footer
   components/AccountMenu.tsx  Avatar menu (display name): Profile & settings, Privacy, Sign out
@@ -141,7 +147,7 @@ supabase/migrations/   SQL migrations, run in order
 ## Roadmap (ideas to build next)
 - [x] Calendar view by Applied On (matches the Notion calendar view)
 - [x] One-off import of Kalhara's Notion rows (SQL run in Supabase, kept out of the repo)
-- [ ] Import from Notion CSV export (self-serve, for other users)
+- [x] CSV import (Notion, Excel, Google Sheets) and CSV export, self-serve, no schema change
 - [x] Next steps: interview/follow-up dates, Up next strip, card badges, calendar, follow-up nudges (v1, in-app only)
 - [ ] Email reminders for next steps (needs a scheduled Supabase Edge Function)
 - [x] Dashboard stats (applications per week, response rate by platform)
