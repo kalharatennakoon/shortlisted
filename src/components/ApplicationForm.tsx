@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { XIcon } from './Icons'
 import { PLATFORMS, PRIORITIES, STATUSES, type Application, type ApplicationInput } from '../lib/types'
 
 interface Props {
@@ -54,7 +55,12 @@ export default function ApplicationForm({ initial, initialDate, onSave, onDelete
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <form className="card modal" onSubmit={onSubmit} onClick={(e) => e.stopPropagation()}>
-        <h2>{initial ? 'Edit application' : 'New application'}</h2>
+        <header className="modal-head">
+          <h2>{initial ? 'Edit application' : 'New application'}</h2>
+          <button type="button" className="ghost icon-only" onClick={onClose} aria-label="Close">
+            <XIcon size={18} />
+          </button>
+        </header>
         <label>
           Role
           <input required value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. DevOps Engineer" />
@@ -105,7 +111,7 @@ export default function ApplicationForm({ initial, initialDate, onSave, onDelete
             </button>
           )}
           <span className="spacer" />
-          <button type="button" onClick={onClose} disabled={busy}>Cancel</button>
+          <button type="button" className="secondary" onClick={onClose} disabled={busy}>Cancel</button>
           <button type="submit" className="primary" disabled={busy}>{busy ? 'Saving…' : 'Save'}</button>
         </div>
       </form>

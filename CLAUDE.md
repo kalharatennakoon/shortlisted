@@ -4,7 +4,7 @@ A multi-user job application tracker, modeled on Kalhara's Notion page **Jobs â†
 Users sign up, log in, and track their own applications on a status board and in a table.
 
 ## Stack
-- **Frontend:** Vite + React 19 + TypeScript, plain CSS (`src/index.css`, Notion-like look, light and dark)
+- **Frontend:** Vite + React 19 + TypeScript, plain CSS (`src/index.css`): light-only, white background, Inter font, design tokens at the top
 - **Routing:** `react-router-dom` with `HashRouter`, because GitHub Pages has no server-side rewrites
 - **Auth + database:** Supabase (email/password auth, Postgres). The browser talks to Supabase directly with the anon key.
 - **Hosting:** GitHub Pages, deployed by `.github/workflows/deploy.yml` on every push to `main`
@@ -54,6 +54,7 @@ src/
   components/CalendarView.tsx  Month calendar by Applied On (dots + agenda list on mobile)
   components/StatsView.tsx  Stats tab: stat tiles + weekly columns + bar lists, each with a table toggle
   components/ApplicationForm.tsx  Add/edit/delete modal
+  components/Icons.tsx  Inline SVG icons + Logo
 supabase/migrations/   SQL migrations, run in order
 ```
 
@@ -67,6 +68,13 @@ supabase/migrations/   SQL migrations, run in order
 - Keep data access in `src/lib/`; components shouldn't call `supabase.from(...)` directly.
 - Never commit `.env` or the Supabase **service_role** key. Only the anon key goes to the browser and to GitHub secrets.
 - `vite.config.ts` reads `VITE_BASE` so assets resolve under `/<repo-name>/` on Pages.
+
+## UI
+- Light theme only (Kalhara asked for a white background); don't reintroduce `prefers-color-scheme` dark styles.
+- No horizontal scrolling anywhere: the board is a grid of 6 columns, 3 under 1180px, stacked under 700px.
+  Table hides Company/Platform/Priority under 860px (company shows under the role instead).
+- Status colours live in `.status-*` classes as `--st-bg/--st-fg/--st-dot`; always shown with a text label.
+- Icons are inline SVGs in `components/Icons.tsx` (no icon library).
 
 ## Charts
 - Hand-built HTML/CSS, no chart library. One series per chart in `--series-1` (light `#2a78d6`, dark `#3987e5`, both validated for contrast on the app surfaces).

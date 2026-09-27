@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { Logo } from '../components/Icons'
 import { useAuth } from '../lib/auth'
 import { appUrl, enabledOAuthProviders, supabase, type OAuthProvider } from '../lib/supabase'
 
@@ -80,13 +81,16 @@ export default function Login() {
   return (
     <div className="auth-wrap">
       <form className="card auth-card" onSubmit={onSubmit}>
-        <h1>Job Tracker</h1>
-        <p className="muted">{title}</p>
+        <div className="auth-brand">
+          <Logo size={40} />
+          <h1>Job Tracker</h1>
+          <p className="muted">{title}</p>
+        </div>
 
         {mode !== 'forgot' && providers.length > 0 && (
           <>
             {providers.map((p) => (
-              <button key={p} type="button" className="oauth" onClick={() => oauth(p)}>
+              <button key={p} type="button" className="secondary oauth" onClick={() => oauth(p)}>
                 <ProviderIcon provider={p} />
                 Continue with {PROVIDER_LABEL[p]}
               </button>

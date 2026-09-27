@@ -3,6 +3,18 @@ import ApplicationForm from '../components/ApplicationForm'
 import CalendarView from '../components/CalendarView'
 import StatsView from '../components/StatsView'
 import {
+  BoardIcon,
+  BuildingIcon,
+  CalendarIcon,
+  ChartIcon,
+  FlagIcon,
+  Logo,
+  LogOutIcon,
+  PlusIcon,
+  SearchIcon,
+  TableIcon,
+} from '../components/Icons'
+import {
   createApplication,
   deleteApplication,
   listApplications,
@@ -15,8 +27,30 @@ import { STATUSES, type Application, type Status } from '../lib/types'
 type View = 'board' | 'table' | 'calendar' | 'stats'
 type Editing = { mode: 'new'; date?: string } | { mode: 'edit'; app: Application } | null
 
-const fmtDate = (d: string | null) =>
-  d ? new Date(d + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
+// "Sep 25" for this year, "Sep 25, 2025" otherwise
+const fmtDate = (d: string | null) => {
+  if (!d) return '—'
+  const date = new Date(d + 'T00:00:00')
+  const sameYear = date.getFullYear() === new Date().getFullYear()
+  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) })
+}
+const statusClass = (s: Status) => `status-${s.replace(' ', '-').toLowerCase()}`
+
+const VIEWS: { id: View; label: string; icon: typeof BoardIcon }[] = [
+  { id: 'board', label: 'Board', icon: BoardIcon },
+  { id: 'table', label: 'Table', icon: TableIcon },
+  { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
+  { id: 'stats', label: 'Stats', icon: ChartIcon },
+]
+
+function StatusPill({ status }: { status: Status }) {
+  return (
+    <span className={`pill ${statusClass(status)}`}>
+      <span className="dot" />
+      {status}
+    </span>
+  )
+}
 
 export default function Tracker() {
   const { session } = useAuth()
@@ -26,6 +60,7 @@ export default function Tracker() {
   const [view, setView] = useState<View>('board')
   const [query, setQuery] = useState('')
   const [editing, setEditing] = useState<Editing>(null)
+  const [dragOver, setDragOver] = useState<Status | null>(null)
 
   useEffect(() => {
     listApplications()
@@ -51,98 +86,171 @@ export default function Tracker() {
     setApps((xs) => xs.map((x) => (x.id === app.id ? updated : x)))
   }
 
+  const email = session?.user.email ?? ''
+  const active = apps.filter((a) => ['Applied', 'Interviewed', 'Offered'].includes(a.status)).length
+
   return (
-    <div className="page">
-      <header className="topbar">
-        <h1>🏢 Jobs</h1>
-        <span className="spacer" />
-        <span className="muted small">{session?.user.email}</span>
-        <button onClick={() => supabase.auth.signOut()}>Sign out</button>
-      </header>
-
-      <div className="toolbar">
-        <div className="tabs">
-          <button className={view === 'board' ? 'active' : ''} onClick={() => setView('board')}>Board</button>
-          <button className={view === 'table' ? 'active' : ''} onClick={() => setView('table')}>Table</button>
-          <button className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}>Calendar</button>
-          <button className={view === 'stats' ? 'active' : ''} onClick={() => setView('stats')}>Stats</button>
+    <div className="app">
+      <nav className="navbar">
+        <div className="navbar-inner">
+          <div className="brand">
+            <Logo size={30} />
+            <span>Job Tracker</span>
+          </div>
+          <span className="spacer" />
+          <span className="avatar" title={email}>{email.charAt(0).toUpperCase()}</span>
+          <span className="nav-email">{email}</span>
+          <button className="ghost icon-btn" onClick={() => supabase.auth.signOut()} title="Sign out">
+            <LogOutIcon />
+            <span className="hide-sm">Sign out</span>
+          </button>
         </div>
-        {view !== 'stats' && (
-          <input className="search" placeholder="Search role or company" value={query} onChange={(e) => setQuery(e.target.value)} />
-        )}
-        <span className="spacer" />
-        <button className="primary" onClick={() => setEditing({ mode: 'new' })}>+ New application</button>
-      </div>
+      </nav>
 
-      {error && <p className="error">{error}</p>}
-      {loading ? (
-        <p className="muted">Loading…</p>
-      ) : view === 'stats' ? (
-        <StatsView apps={apps} />
-      ) : view === 'calendar' ? (
-        <CalendarView
-          apps={filtered}
-          onOpen={(app) => setEditing({ mode: 'edit', app })}
-          onNew={(date) => setEditing({ mode: 'new', date })}
-        />
-      ) : view === 'board' ? (
-        <div className="board">
-          {STATUSES.map((status) => (
-            <section
-              key={status}
-              className="column"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                const app = apps.find((a) => a.id === e.dataTransfer.getData('text/plain'))
-                if (app && app.status !== status) moveTo(app, status).catch((err) => setError(err.message))
-              }}
-            >
-              <h3>
-                <span className={`pill status-${status.replace(' ', '-').toLowerCase()}`}>{status}</span>
-                <span className="muted small">{byStatus[status].length}</span>
-              </h3>
-              {byStatus[status].map((a) => (
-                <article
-                  key={a.id}
-                  className="card job-card"
-                  draggable
-                  onDragStart={(e) => e.dataTransfer.setData('text/plain', a.id)}
-                  onClick={() => setEditing({ mode: 'edit', app: a })}
-                >
-                  <strong>{a.name}</strong>
-                  {a.company && <span>{a.company}</span>}
-                  <span className="muted small">{fmtDate(a.applied_on)}</span>
-                </article>
-              ))}
-            </section>
-          ))}
+      <main className="page">
+        <header className="page-head">
+          <div>
+            <h1>Applications</h1>
+            {!loading && (
+              <p className="muted">
+                {apps.length} total · {active} active
+              </p>
+            )}
+          </div>
+          <button className="primary" onClick={() => setEditing({ mode: 'new' })}>
+            <PlusIcon />
+            <span>New<span className="hide-sm"> application</span></span>
+          </button>
+        </header>
+
+        <div className="toolbar">
+          <div className="segmented" role="tablist">
+            {VIEWS.map(({ id, label, icon: I }) => (
+              <button key={id} role="tab" aria-selected={view === id} className={view === id ? 'active' : ''} onClick={() => setView(id)}>
+                <I />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+          {view !== 'stats' && (
+            <label className="search">
+              <SearchIcon />
+              <input placeholder="Search role or company" value={query} onChange={(e) => setQuery(e.target.value)} />
+            </label>
+          )}
         </div>
-      ) : (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Role</th><th>Company</th><th>Applied on</th><th>Platform</th><th>Priority</th><th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((a) => (
-                <tr key={a.id} onClick={() => setEditing({ mode: 'edit', app: a })}>
-                  <td>{a.name}</td>
-                  <td>{a.company ?? '—'}</td>
-                  <td>{fmtDate(a.applied_on)}</td>
-                  <td>{a.platform ?? '—'}</td>
-                  <td>{a.priority ?? '—'}</td>
-                  <td><span className={`pill status-${a.status.replace(' ', '-').toLowerCase()}`}>{a.status}</span></td>
+
+        {error && <p className="error">{error}</p>}
+        {loading ? (
+          <p className="muted">Loading…</p>
+        ) : view === 'stats' ? (
+          <StatsView apps={apps} />
+        ) : view === 'calendar' ? (
+          <CalendarView
+            apps={filtered}
+            onOpen={(app) => setEditing({ mode: 'edit', app })}
+            onNew={(date) => setEditing({ mode: 'new', date })}
+          />
+        ) : view === 'board' ? (
+          <div className="board">
+            {STATUSES.map((status) => (
+              <section
+                key={status}
+                className={`column${dragOver === status ? ' drop' : ''}${byStatus[status].length === 0 ? ' empty' : ''}`}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  if (dragOver !== status) setDragOver(status)
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(null)
+                }}
+                onDrop={(e) => {
+                  setDragOver(null)
+                  const app = apps.find((a) => a.id === e.dataTransfer.getData('text/plain'))
+                  if (app && app.status !== status) moveTo(app, status).catch((err) => setError(err.message))
+                }}
+              >
+                <h3 className="column-head">
+                  <span className={`dot ${statusClass(status)}`} />
+                  {status}
+                  <span className="count">{byStatus[status].length}</span>
+                </h3>
+                {byStatus[status].map((a) => (
+                  <article
+                    key={a.id}
+                    className="job-card"
+                    draggable
+                    tabIndex={0}
+                    onDragStart={(e) => e.dataTransfer.setData('text/plain', a.id)}
+                    onClick={() => setEditing({ mode: 'edit', app: a })}
+                    onKeyDown={(e) => e.key === 'Enter' && setEditing({ mode: 'edit', app: a })}
+                  >
+                    <strong className="job-title">{a.name}</strong>
+                    {a.company && (
+                      <span className="job-company">
+                        <BuildingIcon size={13} />
+                        {a.company}
+                      </span>
+                    )}
+                    <span className="job-meta">
+                      <span>{fmtDate(a.applied_on)}</span>
+                      {a.priority && (
+                        <span className={`priority priority-${a.priority.toLowerCase()}`}>
+                          <FlagIcon size={12} />
+                          {a.priority}
+                        </span>
+                      )}
+                    </span>
+                  </article>
+                ))}
+                {byStatus[status].length === 0 && <p className="column-empty">No applications</p>}
+              </section>
+            ))}
+          </div>
+        ) : (
+          <div className="table-card">
+            <table className="apps-table">
+              <thead>
+                <tr>
+                  <th>Role</th>
+                  <th className="hide-md">Company</th>
+                  <th>Applied</th>
+                  <th className="hide-md">Platform</th>
+                  <th className="hide-md">Priority</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr><td colSpan={6} className="muted">No applications yet.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {filtered.map((a) => (
+                  <tr key={a.id} onClick={() => setEditing({ mode: 'edit', app: a })}>
+                    <td>
+                      <span className="cell-title">{a.name}</span>
+                      {a.company && <span className="cell-sub show-md">{a.company}</span>}
+                    </td>
+                    <td className="hide-md">{a.company ?? '—'}</td>
+                    <td className="nowrap">{fmtDate(a.applied_on)}</td>
+                    <td className="hide-md">{a.platform ?? '—'}</td>
+                    <td className="hide-md">
+                      {a.priority ? (
+                        <span className={`priority priority-${a.priority.toLowerCase()}`}>
+                          <FlagIcon size={12} />
+                          {a.priority}
+                        </span>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td><StatusPill status={a.status} /></td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={6} className="muted">No applications yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </main>
 
       {editing && (
         <ApplicationForm

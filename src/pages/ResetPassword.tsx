@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Logo } from '../components/Icons'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 
@@ -29,12 +30,14 @@ export default function ResetPassword() {
     <div className="auth-wrap">
       {done ? (
         <div className="card auth-card">
+          <Logo size={40} />
           <h1>Password updated</h1>
           <p className="muted">You’re signed in with your new password.</p>
           <button className="primary" onClick={finishRecovery}>Go to my applications</button>
         </div>
       ) : (
         <form className="card auth-card" onSubmit={onSubmit}>
+          <Logo size={40} />
           <h1>Set a new password</h1>
           <label>
             New password
