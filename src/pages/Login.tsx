@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { accountJustDeleted, clearAccountDeletedNotice } from '../lib/account'
-import { Logo } from '../components/Icons'
+import { ArrowLeftIcon, Logo } from '../components/Icons'
 import PasswordInput from '../components/PasswordInput'
 import { CONFIRM_PARAM, useAuth } from '../lib/auth'
 import { appUrl, enabledOAuthProviders, supabase, type OAuthProvider } from '../lib/supabase'
@@ -30,7 +30,8 @@ function ProviderIcon({ provider }: { provider: OAuthProvider }) {
 export default function Login() {
   const { linkError, notice, clearLinkError } = useAuth()
   const [accountDeleted, setAccountDeleted] = useState(accountJustDeleted)
-  const [mode, setMode] = useState<Mode>('signin')
+  const [params] = useSearchParams()
+  const [mode, setMode] = useState<Mode>(params.get('mode') === 'signup' ? 'signup' : 'signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState<string | null>(null)
@@ -98,6 +99,9 @@ export default function Login() {
 
   return (
     <div className="auth-wrap">
+      <Link to="/" className="back-link auth-home">
+        <ArrowLeftIcon size={15} /> Home
+      </Link>
       <form className="card auth-card" onSubmit={onSubmit}>
         <div className="auth-brand">
           <Logo size={40} />

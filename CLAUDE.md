@@ -30,6 +30,14 @@ Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
   "Your session expired. Please sign in again." Auth calls that can hit AuthSessionMissingError should report it.
 - `supabase` client is a globalThis singleton so dev hot-reload never creates a second client racing token refresh.
 
+## Routing & landing
+- `#/` shows the Tracker when signed in and the Landing page when signed out. If there is a message to show
+  (auth notice, email-link error, account-deleted flag), signed-out `#/` redirects to `#/login` so it isn't lost.
+- Landing screenshots live in `public/landing/*.webp` (board 1600×1111, stats 1600×1111, mobile 780×1688), loaded
+  via `import.meta.env.BASE_URL`. Retake them when the UI changes noticeably.
+- Link previews: Open Graph + Twitter tags in `index.html` point at the absolute URL of `public/og-image.png`
+  (1200×630). Update the image and tags together, and re-scrape with LinkedIn's Post Inspector after changing them.
+
 ## Privacy & account deletion
 - The repo is (or is about to be) private: GitHub Pro keeps Pages public. Don't link to the repo from the app; contact is by email.
 - `public.delete_my_account()` (migration `20260927170000`) is SECURITY DEFINER, deletes only `auth.uid()`'s
@@ -75,7 +83,8 @@ src/
   lib/profile.ts       Profile in auth user_metadata (display_name, target_role, location, linkedin_url; NOT Google's
                        full_name, which Google overwrites each login), changePassword (verifies current pw first)
   lib/stats.ts         Pure stat helpers (summary, by status, response by platform, per week)
-  pages/Login.tsx      Sign in / sign up / forgot password; OAuth buttons for enabled providers
+  pages/Landing.tsx    Public home page for signed-out visitors (hero, features, stats, privacy, CTA)
+  pages/Login.tsx      Sign in / sign up / forgot password; OAuth buttons; `?mode=signup` opens sign-up; Home link
   pages/Profile.tsx    #/profile: hero, Basic details, Password (Google-only accounts see a note), Delete account
   pages/Privacy.tsx    Plain-language privacy page (#/privacy, works signed in or out)
   pages/ResetPassword.tsx  Set a new password after a reset link (shown when recovery is true)
