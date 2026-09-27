@@ -3,6 +3,7 @@ import { PLATFORMS, PRIORITIES, STATUSES, type Application, type ApplicationInpu
 
 interface Props {
   initial?: Application
+  initialDate?: string
   onSave: (input: ApplicationInput) => Promise<void>
   onDelete?: () => Promise<void>
   onClose: () => void
@@ -19,8 +20,10 @@ const empty: ApplicationInput = {
   notes: '',
 }
 
-export default function ApplicationForm({ initial, onSave, onDelete, onClose }: Props) {
-  const [form, setForm] = useState<ApplicationInput>(initial ?? empty)
+export default function ApplicationForm({ initial, initialDate, onSave, onDelete, onClose }: Props) {
+  const [form, setForm] = useState<ApplicationInput>(
+    initial ?? { ...empty, applied_on: initialDate ?? empty.applied_on },
+  )
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

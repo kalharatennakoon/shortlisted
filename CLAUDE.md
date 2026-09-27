@@ -39,7 +39,8 @@ src/
   lib/types.ts         Application type + enum constants
   lib/applications.ts  CRUD calls against the applications table
   pages/Login.tsx      Sign in / sign up
-  pages/Tracker.tsx    Board (drag between status columns) + table views, search
+  pages/Tracker.tsx    Board (drag between status columns), table and calendar views, search
+  components/CalendarView.tsx  Month calendar by Applied On (dots + agenda list on mobile)
   components/ApplicationForm.tsx  Add/edit/delete modal
 supabase/migrations/   SQL migrations, run in order
 ```
@@ -56,8 +57,9 @@ supabase/migrations/   SQL migrations, run in order
 - `vite.config.ts` reads `VITE_BASE` so assets resolve under `/<repo-name>/` on Pages.
 
 ## Roadmap (ideas to build next)
-- [ ] Calendar view by Applied On (matches the Notion calendar view)
-- [ ] Import from Notion CSV export
+- [x] Calendar view by Applied On (matches the Notion calendar view)
+- [x] One-off import of Kalhara's Notion rows (SQL run in Supabase, kept out of the repo)
+- [ ] Import from Notion CSV export (self-serve, for other users)
 - [ ] Interview dates and follow-up reminders
 - [ ] Dashboard stats (applications per week, response rate by platform)
 - [ ] Contacts / recruiter per application

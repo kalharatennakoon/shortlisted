@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import ApplicationForm from '../components/ApplicationForm'
+import CalendarView from '../components/CalendarView'
 import {
   createApplication,
   deleteApplication,
@@ -10,8 +11,8 @@ import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { STATUSES, type Application, type Status } from '../lib/types'
 
-type View = 'board' | 'table'
-type Editing = { mode: 'new' } | { mode: 'edit'; app: Application } | null
+type View = 'board' | 'table' | 'calendar'
+type Editing = { mode: 'new'; date?: string } | { mode: 'edit'; app: Application } | null
 
 const fmtDate = (d: string | null) =>
   d ? new Date(d + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
@@ -62,6 +63,7 @@ export default function Tracker() {
         <div className="tabs">
           <button className={view === 'board' ? 'active' : ''} onClick={() => setView('board')}>Board</button>
           <button className={view === 'table' ? 'active' : ''} onClick={() => setView('table')}>Table</button>
+          <button className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}>Calendar</button>
         </div>
         <input className="search" placeholder="Search role or company" value={query} onChange={(e) => setQuery(e.target.value)} />
         <span className="spacer" />
@@ -71,6 +73,12 @@ export default function Tracker() {
       {error && <p className="error">{error}</p>}
       {loading ? (
         <p className="muted">Loading…</p>
+      ) : view === 'calendar' ? (
+        <CalendarView
+          apps={filtered}
+          onOpen={(app) => setEditing({ mode: 'edit', app })}
+          onNew={(date) => setEditing({ mode: 'new', date })}
+        />
       ) : view === 'board' ? (
         <div className="board">
           {STATUSES.map((status) => (
@@ -133,6 +141,7 @@ export default function Tracker() {
       {editing && (
         <ApplicationForm
           initial={editing.mode === 'edit' ? editing.app : undefined}
+          initialDate={editing.mode === 'new' ? editing.date : undefined}
           onClose={() => setEditing(null)}
           onSave={async (input) => {
             if (editing.mode === 'edit') {
