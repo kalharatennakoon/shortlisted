@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './lib/auth'
 import { isConfigured } from './lib/supabase'
 import Login from './pages/Login'
 import Privacy from './pages/Privacy'
+import Profile from './pages/Profile'
 import ResetPassword from './pages/ResetPassword'
 import Tracker from './pages/Tracker'
 
@@ -13,6 +14,7 @@ function Routed() {
   return (
     <Routes>
       <Route path="/privacy" element={<Privacy />} />
+      <Route path="/profile" element={session ? <Profile /> : <Navigate to="/login" replace />} />
       <Route path="/login" element={session ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/" element={session ? <Tracker /> : <Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />

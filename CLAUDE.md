@@ -68,8 +68,11 @@ src/
   lib/nextSteps.ts     Up-next logic: plannedSteps (overdue first), urgency/labels, needsFollowUp (Applied 14+ days, nothing planned)
   lib/format.ts        fmtDate, statusClass
   lib/errors.ts        errorMessage(e): Supabase errors are plain objects, not Error; always use this for messages
+  lib/profile.ts       Profile in auth user_metadata (display_name, target_role, location, linkedin_url; NOT Google's
+                       full_name, which Google overwrites each login), changePassword (verifies current pw first)
   lib/stats.ts         Pure stat helpers (summary, by status, response by platform, per week)
   pages/Login.tsx      Sign in / sign up / forgot password; OAuth buttons for enabled providers
+  pages/Profile.tsx    #/profile: hero, Basic details, Password (Google-only accounts see a note), Delete account
   pages/Privacy.tsx    Plain-language privacy page (#/privacy, works signed in or out)
   pages/ResetPassword.tsx  Set a new password after a reset link (shown when recovery is true)
   pages/Tracker.tsx    Page shell: views (board/table/calendar/stats), search, optimistic moveTo (reverts on error)
@@ -80,7 +83,9 @@ src/
   components/StatsView.tsx  Stats tab: stat tiles + weekly columns + bar lists, each with a table toggle
   components/ApplicationForm.tsx  Add/edit/delete modal (incl. next step + quick dates)
   components/UpNext.tsx  "Up next" strip above board/table/calendar: Done, follow-up nudges (Follow up today / Mark no response)
-  components/AccountMenu.tsx  Avatar menu: Privacy, Sign out, Delete account (typed DELETE confirm)
+  components/AppShell.tsx  Signed-in frame: navbar (logo → home, AccountMenu) + main + Footer
+  components/AccountMenu.tsx  Avatar menu (display name): Profile & settings, Privacy, Sign out
+  components/DeleteAccountDialog.tsx  Typed-DELETE confirm; opened from the Profile page
   components/PasswordInput.tsx  Password field with show/hide eye toggle (use for every password input)
   components/Footer.tsx  Site footer (logo, v{APP_VERSION}, Privacy, Contact, Built by <name>, no link) on tracker + privacy pages
   components/Icons.tsx  Inline SVG icons + Logo (SVG, unique gradient ids via useId)
@@ -125,6 +130,7 @@ supabase/migrations/   SQL migrations, run in order
 - [ ] Email reminders for next steps (needs a scheduled Supabase Edge Function)
 - [x] Dashboard stats (applications per week, response rate by platform)
 - [x] Privacy page, sign-up privacy note, self-serve account deletion
+- [x] Profile page (basic details, change password, delete account)
 - [ ] Contacts / recruiter per application
 - [x] Password reset flow and Google sign-in (GitHub button ready once enabled in Supabase)
 - [ ] Tests (Vitest + React Testing Library)

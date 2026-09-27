@@ -111,6 +111,23 @@ export const EyeOffIcon = (p: IconProps) => (
     <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2M2 2l20 20" />
   </Icon>
 )
+export const UserIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21a8 8 0 0 1 16 0" />
+  </Icon>
+)
+export const KeyIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="7.5" cy="15.5" r="4.5" />
+    <path d="m10.7 12.3 9.3-9.3M17 6l3 3M14 9l2 2" />
+  </Icon>
+)
+export const ArrowLeftIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M19 12H5M12 19l-7-7 7-7" />
+  </Icon>
+)
 export const ShieldIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />

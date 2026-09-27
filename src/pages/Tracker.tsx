@@ -3,10 +3,9 @@ import { errorMessage } from '../lib/errors'
 import ApplicationForm from '../components/ApplicationForm'
 import CalendarView from '../components/CalendarView'
 import StatsView from '../components/StatsView'
-import AccountMenu from '../components/AccountMenu'
+import AppShell from '../components/AppShell'
 import UpNext from '../components/UpNext'
 import Board from '../components/Board'
-import Footer from '../components/Footer'
 import { NextBadge, StatusPill } from '../components/Badges'
 import { fmtDate } from '../lib/format'
 import { todayKey } from '../lib/dates'
@@ -15,7 +14,6 @@ import {
   CalendarIcon,
   ChartIcon,
   FlagIcon,
-  Logo,
   PlusIcon,
   SearchIcon,
   TableIcon,
@@ -26,7 +24,6 @@ import {
   listApplications,
   updateApplication,
 } from '../lib/applications'
-import { useAuth } from '../lib/auth'
 import type { Application, Status } from '../lib/types'
 
 type View = 'board' | 'table' | 'calendar' | 'stats'
@@ -40,7 +37,6 @@ const VIEWS: { id: View; label: string; icon: typeof BoardIcon }[] = [
 ]
 
 export default function Tracker() {
-  const { session } = useAuth()
   const [apps, setApps] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -83,23 +79,10 @@ export default function Tracker() {
     }
   }
 
-  const email = session?.user.email ?? ''
   const active = apps.filter((a) => ['Applied', 'Interviewed', 'Offered'].includes(a.status)).length
 
   return (
-    <div className="app">
-      <nav className="navbar">
-        <div className="navbar-inner">
-          <div className="brand">
-            <Logo size={30} />
-            <span>Job Tracker</span>
-          </div>
-          <span className="spacer" />
-          <AccountMenu email={email} />
-        </div>
-      </nav>
-
-      <main className="page">
+    <AppShell>
         <header className="page-head">
           <div>
             <h1>Applications</h1>
@@ -199,8 +182,7 @@ export default function Tracker() {
             </table>
           </div>
         )}
-      </main>
-      <Footer />
+
 
       {editing && (
         <ApplicationForm
@@ -226,6 +208,6 @@ export default function Tracker() {
           }
         />
       )}
-    </div>
+    </AppShell>
   )
 }

@@ -30,6 +30,9 @@ export default function Privacy() {
             Your <strong>password</strong>, stored only as a one-way hash. Nobody can read it, including the site
             owner. If you sign in with Google, no password is stored at all.
           </li>
+          <li>
+            Any <strong>profile details</strong> you choose to add (name, target role, location, LinkedIn link).
+          </li>
           <li>The <strong>applications you add</strong>: role, company, dates, status, links, notes and next steps (like interview or follow-up dates).</li>
         </ul>
 
@@ -52,8 +55,8 @@ export default function Privacy() {
 
         <h2>Deleting your data</h2>
         <p>
-          You can delete your account at any time from the account menu (your initial in the top-right corner) →{' '}
-          <strong>Delete account</strong>. This permanently removes your account and every application you added,
+          You can delete your account at any time: open the account menu (your initial in the top-right corner) →{' '}
+          <strong>Profile &amp; settings</strong> → <strong>Delete account</strong>. This permanently removes your account and every application you added,
           straight away.
         </p>
 
