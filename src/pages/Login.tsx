@@ -69,7 +69,14 @@ export default function Login() {
         // marker so the app sends them to sign in after confirming (see lib/auth.tsx)
         options: { emailRedirectTo: `${appUrl()}?${CONFIRM_PARAM}=1` },
       }))
-      if (!err) setMessage('Check your email to confirm your account, then sign in.')
+      if (!err) {
+        // Clear the credentials and flip to sign-in so the form can't be resubmitted by accident;
+        // name the address in the message so they still know where to look.
+        setMessage(`We've sent a confirmation link to ${email}. Open it to activate your account, then sign in here.`)
+        setEmail('')
+        setPassword('')
+        setMode('signin')
+      }
     } else {
       ;({ error: err } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: appUrl() }))
       // Same message whether or not the address has an account, so it can't be used to probe emails.
@@ -127,6 +134,7 @@ export default function Login() {
               )}
             </span>
             <PasswordInput
+              key={mode} // fresh field (hidden again) when switching sign in / sign up
               id="password"
               required
               minLength={6}
