@@ -66,11 +66,16 @@ src/
   lib/config.ts        Owner name, contact email (jobtracker.app.lk@gmail.com), privacy 'last updated' date
   lib/dates.ts         Local YYYY-MM-DD helpers (todayKey, addDays, daysBetween). Never use toISOString for "today"
   lib/nextSteps.ts     Up-next logic: plannedSteps (overdue first), urgency/labels, needsFollowUp (Applied 14+ days, nothing planned)
+  lib/format.ts        fmtDate, statusClass
+  lib/errors.ts        errorMessage(e): Supabase errors are plain objects, not Error; always use this for messages
   lib/stats.ts         Pure stat helpers (summary, by status, response by platform, per week)
   pages/Login.tsx      Sign in / sign up / forgot password; OAuth buttons for enabled providers
   pages/Privacy.tsx    Plain-language privacy page (#/privacy, works signed in or out)
   pages/ResetPassword.tsx  Set a new password after a reset link (shown when recovery is true)
-  pages/Tracker.tsx    Board (drag between status columns), table and calendar views, search
+  pages/Tracker.tsx    Page shell: views (board/table/calendar/stats), search, optimistic moveTo (reverts on error)
+  components/Board.tsx  Kanban board on @dnd-kit/core: DragOverlay (tilted lift), drop slot at landing index,
+                       mouse (6px to start), touch (press-and-hold 180ms), keyboard (Space, arrows jump columns)
+  components/Badges.tsx  NextBadge + StatusPill (shared by board and table)
   components/CalendarView.tsx  Month calendar by Applied On (dots + agenda list on mobile)
   components/StatsView.tsx  Stats tab: stat tiles + weekly columns + bar lists, each with a table toggle
   components/ApplicationForm.tsx  Add/edit/delete modal (incl. next step + quick dates)
@@ -99,6 +104,8 @@ supabase/migrations/   SQL migrations, run in order
 - Status colours live in `.status-*` classes as `--st-bg/--st-fg/--st-dot`; always shown with a text label.
 - Don't wrap an input in a <label> that also contains another button (e.g. "Forgot password?"): label clicks
   activate the first labelable element. Use <label htmlFor> + a `.field` div instead.
+- Board cards: Enter opens, Space picks up. Clicks within 250ms of a drop are ignored (mouseup click). Don't add
+  sortable-within-column without a position column in the DB; cards are ordered by the list order.
 - Icons are inline SVGs in `components/Icons.tsx` (no icon library).
 - Logo = stacked kanban cards with a check on a blue→violet tile (Kalhara chose it). The same artwork lives in
   `Logo` (Icons.tsx), `public/favicon.svg`, `public/icon-192.png`, `public/icon-512.png`, `public/apple-touch-icon.png`;

@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
+import { errorMessage } from '../lib/errors'
 import ApplicationForm from '../components/ApplicationForm'
 import CalendarView from '../components/CalendarView'
 import StatsView from '../components/StatsView'
 import AccountMenu from '../components/AccountMenu'
 import UpNext from '../components/UpNext'
+import Board from '../components/Board'
+import { NextBadge, StatusPill } from '../components/Badges'
+import { fmtDate } from '../lib/format'
 import { todayKey } from '../lib/dates'
-import { isStale, relativeLabel, urgencyOf } from '../lib/nextSteps'
 import {
-  BellIcon,
   BoardIcon,
-  BuildingIcon,
   CalendarIcon,
   ChartIcon,
   FlagIcon,
@@ -25,19 +26,10 @@ import {
   updateApplication,
 } from '../lib/applications'
 import { useAuth } from '../lib/auth'
-import { STATUSES, type Application, type Status } from '../lib/types'
+import type { Application, Status } from '../lib/types'
 
 type View = 'board' | 'table' | 'calendar' | 'stats'
 type Editing = { mode: 'new'; date?: string } | { mode: 'edit'; app: Application } | null
-
-// "Sep 25" for this year, "Sep 25, 2025" otherwise
-const fmtDate = (d: string | null) => {
-  if (!d) return '—'
-  const date = new Date(d + 'T00:00:00')
-  const sameYear = date.getFullYear() === new Date().getFullYear()
-  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) })
-}
-const statusClass = (s: Status) => `status-${s.replace(' ', '-').toLowerCase()}`
 
 const VIEWS: { id: View; label: string; icon: typeof BoardIcon }[] = [
   { id: 'board', label: 'Board', icon: BoardIcon },
@@ -45,29 +37,6 @@ const VIEWS: { id: View; label: string; icon: typeof BoardIcon }[] = [
   { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
   { id: 'stats', label: 'Stats', icon: ChartIcon },
 ]
-
-/** Next-step reminder on a card/row: "Interview · Thu" coloured by urgency, or a follow-up nudge. */
-function NextBadge({ app }: { app: Application }) {
-  if (app.next_step && app.next_date) {
-    return (
-      <span className={`next-badge urgency-${urgencyOf(app.next_date)}`} title={`${app.next_step}: ${relativeLabel(app.next_date)}`}>
-        <BellIcon size={12} />
-        {app.next_step} · {relativeLabel(app.next_date, undefined, true)}
-      </span>
-    )
-  }
-  if (isStale(app)) return <span className="next-badge nudge" title="No reply for 2+ weeks">Follow up?</span>
-  return null
-}
-
-function StatusPill({ status }: { status: Status }) {
-  return (
-    <span className={`pill ${statusClass(status)}`}>
-      <span className="dot" />
-      {status}
-    </span>
-  )
-}
 
 export default function Tracker() {
   const { session } = useAuth()
@@ -77,12 +46,11 @@ export default function Tracker() {
   const [view, setView] = useState<View>('board')
   const [query, setQuery] = useState('')
   const [editing, setEditing] = useState<Editing>(null)
-  const [dragOver, setDragOver] = useState<Status | null>(null)
 
   useEffect(() => {
     listApplications()
       .then(setApps)
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(errorMessage(e)))
       .finally(() => setLoading(false))
   }, [])
 
@@ -92,22 +60,27 @@ export default function Tracker() {
     return apps.filter((a) => `${a.name} ${a.company ?? ''}`.toLowerCase().includes(q))
   }, [apps, query])
 
-  const byStatus = useMemo(() => {
-    const groups = Object.fromEntries(STATUSES.map((s) => [s, [] as Application[]])) as Record<Status, Application[]>
-    filtered.forEach((a) => groups[a.status].push(a))
-    return groups
-  }, [filtered])
-
   async function patch(app: Application, fields: Partial<Application>) {
     try {
       const updated = await updateApplication(app.id, fields)
       setApps((xs) => xs.map((x) => (x.id === app.id ? updated : x)))
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(errorMessage(e))
     }
   }
 
-  const moveTo = (app: Application, status: Status) => patch(app, { status })
+  // Optimistic: move the card immediately, save in the background, undo if the save fails
+  async function moveTo(app: Application, status: Status) {
+    const previous = app.status
+    setApps((xs) => xs.map((x) => (x.id === app.id ? { ...x, status } : x)))
+    try {
+      const updated = await updateApplication(app.id, { status })
+      setApps((xs) => xs.map((x) => (x.id === app.id ? updated : x)))
+    } catch (e) {
+      setApps((xs) => xs.map((x) => (x.id === app.id ? { ...x, status: previous } : x)))
+      setError(`Couldn't move "${app.name}": ${errorMessage(e)}`)
+    }
+  }
 
   const email = session?.user.email ?? ''
   const active = apps.filter((a) => ['Applied', 'Interviewed', 'Offered'].includes(a.status)).length
@@ -179,62 +152,7 @@ export default function Tracker() {
             onNew={(date) => setEditing({ mode: 'new', date })}
           />
         ) : view === 'board' ? (
-          <div className="board">
-            {STATUSES.map((status) => (
-              <section
-                key={status}
-                className={`column${dragOver === status ? ' drop' : ''}${byStatus[status].length === 0 ? ' empty' : ''}`}
-                onDragOver={(e) => {
-                  e.preventDefault()
-                  if (dragOver !== status) setDragOver(status)
-                }}
-                onDragLeave={(e) => {
-                  if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(null)
-                }}
-                onDrop={(e) => {
-                  setDragOver(null)
-                  const app = apps.find((a) => a.id === e.dataTransfer.getData('text/plain'))
-                  if (app && app.status !== status) moveTo(app, status)
-                }}
-              >
-                <h3 className="column-head">
-                  <span className={`dot ${statusClass(status)}`} />
-                  {status}
-                  <span className="count">{byStatus[status].length}</span>
-                </h3>
-                {byStatus[status].map((a) => (
-                  <article
-                    key={a.id}
-                    className="job-card"
-                    draggable
-                    tabIndex={0}
-                    onDragStart={(e) => e.dataTransfer.setData('text/plain', a.id)}
-                    onClick={() => setEditing({ mode: 'edit', app: a })}
-                    onKeyDown={(e) => e.key === 'Enter' && setEditing({ mode: 'edit', app: a })}
-                  >
-                    <strong className="job-title">{a.name}</strong>
-                    {a.company && (
-                      <span className="job-company">
-                        <BuildingIcon size={13} />
-                        {a.company}
-                      </span>
-                    )}
-                    <NextBadge app={a} />
-                    <span className="job-meta">
-                      <span>{fmtDate(a.applied_on)}</span>
-                      {a.priority && (
-                        <span className={`priority priority-${a.priority.toLowerCase()}`}>
-                          <FlagIcon size={12} />
-                          {a.priority}
-                        </span>
-                      )}
-                    </span>
-                  </article>
-                ))}
-                {byStatus[status].length === 0 && <p className="column-empty">No applications</p>}
-              </section>
-            ))}
-          </div>
+          <Board apps={filtered} onOpen={(app) => setEditing({ mode: 'edit', app })} onMove={moveTo} />
         ) : (
           <div className="table-card">
             <table className="apps-table">

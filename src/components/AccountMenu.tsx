@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { errorMessage } from '../lib/errors'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { deleteMyAccount } from '../lib/account'
@@ -19,7 +20,7 @@ function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
     try {
       await deleteMyAccount() // signs out; the app then shows the sign-in screen with a confirmation
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(errorMessage(err))
       setBusy(false)
     }
   }

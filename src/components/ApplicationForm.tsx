@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { errorMessage } from '../lib/errors'
 import { XIcon } from './Icons'
 import { addDays, todayKey } from '../lib/dates'
 import { NEXT_STEPS, PLATFORMS, PRIORITIES, STATUSES, type Application, type ApplicationInput } from '../lib/types'
@@ -47,7 +48,7 @@ export default function ApplicationForm({ initial, initialDate, onSave, onDelete
       await fn()
       onClose()
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(errorMessage(e))
       setBusy(false)
     }
   }
