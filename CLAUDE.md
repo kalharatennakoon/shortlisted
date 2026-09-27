@@ -38,9 +38,11 @@ src/
   lib/auth.tsx         AuthProvider + useAuth() session hook
   lib/types.ts         Application type + enum constants
   lib/applications.ts  CRUD calls against the applications table
+  lib/stats.ts         Pure stat helpers (summary, by status, response by platform, per week)
   pages/Login.tsx      Sign in / sign up
   pages/Tracker.tsx    Board (drag between status columns), table and calendar views, search
   components/CalendarView.tsx  Month calendar by Applied On (dots + agenda list on mobile)
+  components/StatsView.tsx  Stats tab: stat tiles + weekly columns + bar lists, each with a table toggle
   components/ApplicationForm.tsx  Add/edit/delete modal
 supabase/migrations/   SQL migrations, run in order
 ```
@@ -56,12 +58,17 @@ supabase/migrations/   SQL migrations, run in order
 - Never commit `.env` or the Supabase **service_role** key. Only the anon key goes to the browser and to GitHub secrets.
 - `vite.config.ts` reads `VITE_BASE` so assets resolve under `/<repo-name>/` on Pages.
 
+## Charts
+- Hand-built HTML/CSS, no chart library. One series per chart in `--series-1` (light `#2a78d6`, dark `#3987e5`, both validated for contrast on the app surfaces).
+- "Response rate" = share with status Interviewed, Offered, Accepted or Rejected (any reply counts). Defined in `lib/stats.ts`.
+- Every chart has a hover tooltip and a "Show table" fallback; keep both when adding charts.
+
 ## Roadmap (ideas to build next)
 - [x] Calendar view by Applied On (matches the Notion calendar view)
 - [x] One-off import of Kalhara's Notion rows (SQL run in Supabase, kept out of the repo)
 - [ ] Import from Notion CSV export (self-serve, for other users)
 - [ ] Interview dates and follow-up reminders
-- [ ] Dashboard stats (applications per week, response rate by platform)
+- [x] Dashboard stats (applications per week, response rate by platform)
 - [ ] Contacts / recruiter per application
 - [ ] Password reset flow and OAuth (Google/GitHub) sign-in
 - [ ] Tests (Vitest + React Testing Library)

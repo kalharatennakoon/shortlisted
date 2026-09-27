@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import ApplicationForm from '../components/ApplicationForm'
 import CalendarView from '../components/CalendarView'
+import StatsView from '../components/StatsView'
 import {
   createApplication,
   deleteApplication,
@@ -11,7 +12,7 @@ import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { STATUSES, type Application, type Status } from '../lib/types'
 
-type View = 'board' | 'table' | 'calendar'
+type View = 'board' | 'table' | 'calendar' | 'stats'
 type Editing = { mode: 'new'; date?: string } | { mode: 'edit'; app: Application } | null
 
 const fmtDate = (d: string | null) =>
@@ -64,8 +65,11 @@ export default function Tracker() {
           <button className={view === 'board' ? 'active' : ''} onClick={() => setView('board')}>Board</button>
           <button className={view === 'table' ? 'active' : ''} onClick={() => setView('table')}>Table</button>
           <button className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}>Calendar</button>
+          <button className={view === 'stats' ? 'active' : ''} onClick={() => setView('stats')}>Stats</button>
         </div>
-        <input className="search" placeholder="Search role or company" value={query} onChange={(e) => setQuery(e.target.value)} />
+        {view !== 'stats' && (
+          <input className="search" placeholder="Search role or company" value={query} onChange={(e) => setQuery(e.target.value)} />
+        )}
         <span className="spacer" />
         <button className="primary" onClick={() => setEditing({ mode: 'new' })}>+ New application</button>
       </div>
@@ -73,6 +77,8 @@ export default function Tracker() {
       {error && <p className="error">{error}</p>}
       {loading ? (
         <p className="muted">Loading…</p>
+      ) : view === 'stats' ? (
+        <StatsView apps={apps} />
       ) : view === 'calendar' ? (
         <CalendarView
           apps={filtered}
