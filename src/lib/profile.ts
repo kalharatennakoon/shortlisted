@@ -1,4 +1,5 @@
-import type { User } from '@supabase/supabase-js'
+import { isAuthSessionMissingError, type User } from '@supabase/supabase-js'
+import { reportSessionLost } from './sessionLost'
 import { supabase } from './supabase'
 
 /**
@@ -34,7 +35,7 @@ export function displayName(user: User | null | undefined): string {
 export async function updateProfile(p: Profile): Promise<void> {
   const trimmed = Object.fromEntries(Object.entries(p).map(([k, v]) => [k, v.trim()])) as unknown as Profile
   const { error } = await supabase.auth.updateUser({ data: trimmed })
-  if (error) throw error
+  if (error) throw reportIfSessionLost(error)
 }
 
 /** True if the account can sign in with email + password (as opposed to Google only). */
@@ -59,5 +60,14 @@ export async function changePassword(email: string, current: string, next: strin
   const check = await supabase.auth.signInWithPassword({ email, password: current })
   if (check.error) throw new WrongPasswordError()
   const { error } = await supabase.auth.updateUser({ password: next })
-  if (error) throw error
+  if (error) throw reportIfSessionLost(error)
+}
+
+/** The browser lost the stored login (e.g. a failed background refresh): send the user to sign in. */
+function reportIfSessionLost(error: Error): Error {
+  if (isAuthSessionMissingError(error)) {
+    reportSessionLost()
+    return new Error('Your session expired. Please sign in again.')
+  }
+  return error
 }

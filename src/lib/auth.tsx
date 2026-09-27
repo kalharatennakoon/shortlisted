@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
+import { SESSION_LOST_EVENT } from './sessionLost'
 import { supabase } from './supabase'
 
 interface AuthState {
@@ -110,6 +111,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
     return () => sub.subscription.unsubscribe()
   }, [])
+
+  // Keep the UI in step with the stored login. The library can clear it without an event (e.g. a failed
+  // background token refresh); without this the page looks signed in but every save fails.
+  const signedIn = Boolean(state.session)
+  useEffect(() => {
+    if (!signedIn) return
+    const expire = async () => {
+      await supabase.auth.signOut({ scope: 'local' }) // emits SIGNED_OUT -> sign-in screen
+      setState((s) => ({ ...s, session: null, notice: 'Your session expired. Please sign in again.' }))
+    }
+    const check = async () => {
+      if (document.visibilityState !== 'visible') return
+      const { data } = await supabase.auth.getSession()
+      if (!data.session) expire()
+    }
+    window.addEventListener(SESSION_LOST_EVENT, expire)
+    document.addEventListener('visibilitychange', check)
+    window.addEventListener('focus', check)
+    return () => {
+      window.removeEventListener(SESSION_LOST_EVENT, expire)
+      document.removeEventListener('visibilitychange', check)
+      window.removeEventListener('focus', check)
+    }
+  }, [signedIn])
 
   return (
     <AuthContext.Provider

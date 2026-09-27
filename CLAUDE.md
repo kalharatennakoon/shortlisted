@@ -25,6 +25,10 @@ Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
   sign in." Works even if the link is opened in another browser (the email is confirmed server-side before redirect).
   Supabase Redirect URLs must include `https://kalharatennakoon.github.io/job-tracker/**` or the marker is dropped.
 - Keep side effects (URL cleanup) out of React state updaters; StrictMode runs them twice in dev.
+- The library can clear the stored session without an event (failed background refresh). AuthProvider re-checks on
+  tab focus/visibility and listens for `reportSessionLost()` (lib/sessionLost.ts); either signs out locally and shows
+  "Your session expired. Please sign in again." Auth calls that can hit AuthSessionMissingError should report it.
+- `supabase` client is a globalThis singleton so dev hot-reload never creates a second client racing token refresh.
 
 ## Privacy & account deletion
 - The repo is (or is about to be) private: GitHub Pro keeps Pages public. Don't link to the repo from the app; contact is by email.
