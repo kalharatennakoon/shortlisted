@@ -84,6 +84,21 @@ export const FlagIcon = (p: IconProps) => (
   </Icon>
 )
 
+export const CheckIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M20 6 9 17l-5-5" />
+  </Icon>
+)
+export const BellIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+  </Icon>
+)
+export const ChevronIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="m6 9 6 6 6-6" />
+  </Icon>
+)
 export const EyeIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />

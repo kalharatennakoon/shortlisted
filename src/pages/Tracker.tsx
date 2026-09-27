@@ -3,7 +3,11 @@ import ApplicationForm from '../components/ApplicationForm'
 import CalendarView from '../components/CalendarView'
 import StatsView from '../components/StatsView'
 import AccountMenu from '../components/AccountMenu'
+import UpNext from '../components/UpNext'
+import { todayKey } from '../lib/dates'
+import { isStale, relativeLabel, urgencyOf } from '../lib/nextSteps'
 import {
+  BellIcon,
   BoardIcon,
   BuildingIcon,
   CalendarIcon,
@@ -41,6 +45,20 @@ const VIEWS: { id: View; label: string; icon: typeof BoardIcon }[] = [
   { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
   { id: 'stats', label: 'Stats', icon: ChartIcon },
 ]
+
+/** Next-step reminder on a card/row: "Interview · Thu" coloured by urgency, or a follow-up nudge. */
+function NextBadge({ app }: { app: Application }) {
+  if (app.next_step && app.next_date) {
+    return (
+      <span className={`next-badge urgency-${urgencyOf(app.next_date)}`} title={`${app.next_step}: ${relativeLabel(app.next_date)}`}>
+        <BellIcon size={12} />
+        {app.next_step} · {relativeLabel(app.next_date, undefined, true)}
+      </span>
+    )
+  }
+  if (isStale(app)) return <span className="next-badge nudge" title="No reply for 2+ weeks">Follow up?</span>
+  return null
+}
 
 function StatusPill({ status }: { status: Status }) {
   return (
@@ -80,10 +98,16 @@ export default function Tracker() {
     return groups
   }, [filtered])
 
-  async function moveTo(app: Application, status: Status) {
-    const updated = await updateApplication(app.id, { status })
-    setApps((xs) => xs.map((x) => (x.id === app.id ? updated : x)))
+  async function patch(app: Application, fields: Partial<Application>) {
+    try {
+      const updated = await updateApplication(app.id, fields)
+      setApps((xs) => xs.map((x) => (x.id === app.id ? updated : x)))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
   }
+
+  const moveTo = (app: Application, status: Status) => patch(app, { status })
 
   const email = session?.user.email ?? ''
   const active = apps.filter((a) => ['Applied', 'Interviewed', 'Offered'].includes(a.status)).length
@@ -135,6 +159,15 @@ export default function Tracker() {
         </div>
 
         {error && <p className="error">{error}</p>}
+        {!loading && view !== 'stats' && (
+          <UpNext
+            apps={apps}
+            onOpen={(app) => setEditing({ mode: 'edit', app })}
+            onDone={(app) => patch(app, { next_step: null, next_date: null })}
+            onPlanFollowUp={(app) => patch(app, { next_step: 'Follow up', next_date: todayKey() })}
+            onNoResponse={(app) => patch(app, { status: 'No Response' })}
+          />
+        )}
         {loading ? (
           <p className="muted">Loading…</p>
         ) : view === 'stats' ? (
@@ -161,7 +194,7 @@ export default function Tracker() {
                 onDrop={(e) => {
                   setDragOver(null)
                   const app = apps.find((a) => a.id === e.dataTransfer.getData('text/plain'))
-                  if (app && app.status !== status) moveTo(app, status).catch((err) => setError(err.message))
+                  if (app && app.status !== status) moveTo(app, status)
                 }}
               >
                 <h3 className="column-head">
@@ -186,6 +219,7 @@ export default function Tracker() {
                         {a.company}
                       </span>
                     )}
+                    <NextBadge app={a} />
                     <span className="job-meta">
                       <span>{fmtDate(a.applied_on)}</span>
                       {a.priority && (
@@ -211,6 +245,7 @@ export default function Tracker() {
                   <th>Applied</th>
                   <th className="hide-md">Platform</th>
                   <th className="hide-md">Priority</th>
+                  <th className="hide-md">Next step</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -234,11 +269,12 @@ export default function Tracker() {
                         '—'
                       )}
                     </td>
+                    <td className="hide-md"><NextBadge app={a} /></td>
                     <td><StatusPill status={a.status} /></td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={6} className="muted">No applications yet.</td></tr>
+                  <tr><td colSpan={7} className="muted">No applications yet.</td></tr>
                 )}
               </tbody>
             </table>

@@ -28,7 +28,7 @@ export default function Privacy() {
             Your <strong>password</strong>, stored only as a one-way hash. Nobody can read it, including the site
             owner. If you sign in with Google, no password is stored at all.
           </li>
-          <li>The <strong>applications you add</strong>: role, company, dates, status, links and notes.</li>
+          <li>The <strong>applications you add</strong>: role, company, dates, status, links, notes and next steps (like interview or follow-up dates).</li>
         </ul>
 
         <h2>Who can see it</h2>

@@ -45,6 +45,8 @@ Table `public.applications`, defined in `supabase/migrations/`:
 | `priority` | Priority | enum: Low, Medium, High |
 | `status` | Status | enum: Applied, Interviewed, Offered, Accepted, Rejected, No Response |
 | `job_url`, `notes` | (new, not in Notion) | text |
+| `next_step` | (new) | enum: Interview, Follow up, Assessment, Call, Other |
+| `next_date` | (new) | date; form requires both or neither |
 | `user_id` | (owner) | uuid → auth.users, defaults to `auth.uid()` |
 
 Notion status groups: To-do = Applied, Interviewed · In progress = Offered · Complete = Accepted, Rejected, No Response.
@@ -61,6 +63,8 @@ src/
   lib/applications.ts  CRUD calls against the applications table
   lib/account.ts       deleteMyAccount() via rpc + one-time 'account deleted' notice
   lib/config.ts        Owner name, contact link, privacy 'last updated' date
+  lib/dates.ts         Local YYYY-MM-DD helpers (todayKey, addDays, daysBetween). Never use toISOString for "today"
+  lib/nextSteps.ts     Up-next logic: plannedSteps (overdue first), urgency/labels, needsFollowUp (Applied 14+ days, nothing planned)
   lib/stats.ts         Pure stat helpers (summary, by status, response by platform, per week)
   pages/Login.tsx      Sign in / sign up / forgot password; OAuth buttons for enabled providers
   pages/Privacy.tsx    Plain-language privacy page (#/privacy, works signed in or out)
@@ -68,7 +72,8 @@ src/
   pages/Tracker.tsx    Board (drag between status columns), table and calendar views, search
   components/CalendarView.tsx  Month calendar by Applied On (dots + agenda list on mobile)
   components/StatsView.tsx  Stats tab: stat tiles + weekly columns + bar lists, each with a table toggle
-  components/ApplicationForm.tsx  Add/edit/delete modal
+  components/ApplicationForm.tsx  Add/edit/delete modal (incl. next step + quick dates)
+  components/UpNext.tsx  "Up next" strip above board/table/calendar: Done, follow-up nudges (Follow up today / Mark no response)
   components/AccountMenu.tsx  Avatar menu: Privacy, Sign out, Delete account (typed DELETE confirm)
   components/PasswordInput.tsx  Password field with show/hide eye toggle (use for every password input)
   components/Icons.tsx  Inline SVG icons + Logo (SVG, unique gradient ids via useId)
@@ -107,7 +112,8 @@ supabase/migrations/   SQL migrations, run in order
 - [x] Calendar view by Applied On (matches the Notion calendar view)
 - [x] One-off import of Kalhara's Notion rows (SQL run in Supabase, kept out of the repo)
 - [ ] Import from Notion CSV export (self-serve, for other users)
-- [ ] Interview dates and follow-up reminders
+- [x] Next steps: interview/follow-up dates, Up next strip, card badges, calendar, follow-up nudges (v1, in-app only)
+- [ ] Email reminders for next steps (needs a scheduled Supabase Edge Function)
 - [x] Dashboard stats (applications per week, response rate by platform)
 - [x] Privacy page, sign-up privacy note, self-serve account deletion
 - [ ] Contacts / recruiter per application

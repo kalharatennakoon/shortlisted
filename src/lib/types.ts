@@ -3,10 +3,12 @@
 export const STATUSES = ['Applied', 'Interviewed', 'Offered', 'Accepted', 'Rejected', 'No Response'] as const
 export const PRIORITIES = ['Low', 'Medium', 'High'] as const
 export const PLATFORMS = ['Email', 'Company Website', 'LinkedIn', 'Other'] as const
+export const NEXT_STEPS = ['Interview', 'Follow up', 'Assessment', 'Call', 'Other'] as const
 
 export type Status = (typeof STATUSES)[number]
 export type Priority = (typeof PRIORITIES)[number]
 export type Platform = (typeof PLATFORMS)[number]
+export type NextStep = (typeof NEXT_STEPS)[number]
 
 export interface Application {
   id: string
@@ -19,6 +21,8 @@ export interface Application {
   status: Status
   job_url: string | null
   notes: string | null
+  next_step: NextStep | null
+  next_date: string | null // YYYY-MM-DD
   created_at: string
   updated_at: string
 }

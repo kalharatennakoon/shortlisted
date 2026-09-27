@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { XIcon } from './Icons'
-import { PLATFORMS, PRIORITIES, STATUSES, type Application, type ApplicationInput } from '../lib/types'
+import { addDays, todayKey } from '../lib/dates'
+import { NEXT_STEPS, PLATFORMS, PRIORITIES, STATUSES, type Application, type ApplicationInput } from '../lib/types'
 
 interface Props {
   initial?: Application
@@ -10,15 +11,23 @@ interface Props {
   onClose: () => void
 }
 
+const QUICK_DATES: [string, number][] = [
+  ['Tomorrow', 1],
+  ['In 3 days', 3],
+  ['Next week', 7],
+]
+
 const empty: ApplicationInput = {
   name: '',
   company: '',
-  applied_on: new Date().toISOString().slice(0, 10),
+  applied_on: todayKey(), // local date (toISOString would be UTC: yesterday before 05:30 in Sri Lanka)
   platform: null,
   priority: null,
   status: 'Applied',
   job_url: '',
   notes: '',
+  next_step: null,
+  next_date: null,
 }
 
 export default function ApplicationForm({ initial, initialDate, onSave, onDelete, onClose }: Props) {
@@ -95,6 +104,51 @@ export default function ApplicationForm({ initial, initialDate, onSave, onDelete
             </select>
           </label>
         </div>
+        <fieldset className="next-fields">
+          <legend>
+            Next step <span className="muted">optional</span>
+          </legend>
+          <div className="grid-2">
+            <label>
+              What
+              <select
+                value={form.next_step ?? ''}
+                // a date needs a step to go with it
+                required={Boolean(form.next_date)}
+                onChange={(e) => set('next_step', (e.target.value || null) as ApplicationInput['next_step'])}
+              >
+                <option value="">—</option>
+                {NEXT_STEPS.map((s) => <option key={s}>{s}</option>)}
+              </select>
+            </label>
+            <label>
+              When
+              <input
+                type="date"
+                value={form.next_date ?? ''}
+                // a step needs a date so it can show up in "Up next"
+                required={Boolean(form.next_step)}
+                onChange={(e) => set('next_date', e.target.value || null)}
+              />
+            </label>
+          </div>
+          <div className="quick-dates">
+            {QUICK_DATES.map(([label, days]) => (
+              <button key={label} type="button" className="chip" onClick={() => set('next_date', addDays(todayKey(), days))}>
+                {label}
+              </button>
+            ))}
+            {(form.next_step || form.next_date) && (
+              <button
+                type="button"
+                className="link small"
+                onClick={() => setForm((f) => ({ ...f, next_step: null, next_date: null }))}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </fieldset>
         <label>
           Job posting URL
           <input type="url" value={form.job_url ?? ''} onChange={(e) => set('job_url', e.target.value)} />
