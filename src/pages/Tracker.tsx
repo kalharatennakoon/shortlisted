@@ -6,6 +6,7 @@ import StatsView from '../components/StatsView'
 import AccountMenu from '../components/AccountMenu'
 import UpNext from '../components/UpNext'
 import Board from '../components/Board'
+import Footer from '../components/Footer'
 import { NextBadge, StatusPill } from '../components/Badges'
 import { fmtDate } from '../lib/format'
 import { todayKey } from '../lib/dates'
@@ -199,6 +200,7 @@ export default function Tracker() {
           </div>
         )}
       </main>
+      <Footer />
 
       {editing && (
         <ApplicationForm

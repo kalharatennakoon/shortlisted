@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import Footer from '../components/Footer'
 import { Logo } from '../components/Icons'
 import { useAuth } from '../lib/auth'
 import { CONTACT_EMAIL, OWNER_NAME, PRIVACY_UPDATED } from '../lib/config'
@@ -6,6 +7,7 @@ import { CONTACT_EMAIL, OWNER_NAME, PRIVACY_UPDATED } from '../lib/config'
 export default function Privacy() {
   const { session } = useAuth()
   return (
+    <div className="doc-page">
     <div className="doc-wrap">
       <article className="card doc">
         <header className="doc-head">
@@ -65,6 +67,8 @@ export default function Privacy() {
           <Link to={session ? '/' : '/login'}>← Back to {session ? 'my applications' : 'sign in'}</Link>
         </footer>
       </article>
+    </div>
+    <Footer />
     </div>
   )
 }

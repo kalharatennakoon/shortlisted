@@ -63,7 +63,7 @@ src/
   lib/types.ts         Application type + enum constants
   lib/applications.ts  CRUD calls against the applications table
   lib/account.ts       deleteMyAccount() via rpc + one-time 'account deleted' notice
-  lib/config.ts        Owner name, contact email (jobtracker.app.lk@gmail.com), privacy 'last updated' date
+  lib/config.ts        Owner name/portfolio URL, contact email (jobtracker.app.lk@gmail.com), APP_VERSION, privacy date
   lib/dates.ts         Local YYYY-MM-DD helpers (todayKey, addDays, daysBetween). Never use toISOString for "today"
   lib/nextSteps.ts     Up-next logic: plannedSteps (overdue first), urgency/labels, needsFollowUp (Applied 14+ days, nothing planned)
   lib/format.ts        fmtDate, statusClass
@@ -82,6 +82,7 @@ src/
   components/UpNext.tsx  "Up next" strip above board/table/calendar: Done, follow-up nudges (Follow up today / Mark no response)
   components/AccountMenu.tsx  Avatar menu: Privacy, Sign out, Delete account (typed DELETE confirm)
   components/PasswordInput.tsx  Password field with show/hide eye toggle (use for every password input)
+  components/Footer.tsx  Site footer (logo, v{APP_VERSION}, Privacy, Contact, Built by …) on tracker + privacy pages
   components/Icons.tsx  Inline SVG icons + Logo (SVG, unique gradient ids via useId)
 supabase/migrations/   SQL migrations, run in order
 ```
