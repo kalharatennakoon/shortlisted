@@ -2,5 +2,4 @@
 export const OWNER_NAME = 'Kalhara Tennakoon'
 export const CONTACT_EMAIL = 'jobtracker.app.lk@gmail.com'
 export const PRIVACY_UPDATED = '27 September 2026'
-export const OWNER_URL = 'https://kalharatennakoon.github.io/'
 export const APP_VERSION = '1.0'
