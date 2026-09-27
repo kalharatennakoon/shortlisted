@@ -19,7 +19,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </div>
       </nav>
       <main className="page">{children}</main>
-      <Footer />
+      <Footer compact />
     </div>
   )
 }

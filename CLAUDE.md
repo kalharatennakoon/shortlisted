@@ -33,8 +33,10 @@ Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
 ## Routing & landing
 - `#/` shows the Tracker when signed in and the Landing page when signed out. If there is a message to show
   (auth notice, email-link error, account-deleted flag), signed-out `#/` redirects to `#/login` so it isn't lost.
-- Landing screenshots live in `public/landing/*.webp` (board 1600×1111, stats 1600×1111, mobile 780×1688), loaded
-  via `import.meta.env.BASE_URL`. Retake them when the UI changes noticeably.
+- Landing screenshots live in `public/landing/*.webp` (board 1600×1111, stats 1600×1111), loaded via
+  `import.meta.env.BASE_URL`. `iphone.webp` (880×1808, transparent) is the whole device: an iPhone 17 Pro frame
+  (402×874pt screen, Dynamic Island, status bar, Action/volume/side buttons, Camera Control) around a 402×812
+  screenshot. The same device image is used in `og-image.png`. Retake them when the UI changes noticeably.
 - Link previews: Open Graph + Twitter tags in `index.html` point at the absolute URL of `public/og-image.png`
   (1200×630). Update the image and tags together, and re-scrape with LinkedIn's Post Inspector after changing them.
 
@@ -100,7 +102,8 @@ src/
   components/AccountMenu.tsx  Avatar menu (display name): Profile & settings, Privacy, Sign out
   components/DeleteAccountDialog.tsx  Typed-DELETE confirm; opened from the Profile page
   components/PasswordInput.tsx  Password field with show/hide eye toggle (use for every password input)
-  components/Footer.tsx  Site footer (logo, v{APP_VERSION}, Privacy, Contact, Built by <name>, no link) on tracker + privacy pages
+  components/Footer.tsx  Full footer (brand + tagline, Product / Privacy / Get in touch columns, © + Built by <name> in
+                       Sri Lanka + version) on landing + privacy; `compact` slim bar inside AppShell. No portfolio link
   components/Icons.tsx  Inline SVG icons + Logo (SVG, unique gradient ids via useId)
 supabase/migrations/   SQL migrations, run in order
 ```

@@ -128,6 +128,12 @@ export const ArrowLeftIcon = (p: IconProps) => (
     <path d="M19 12H5M12 19l-7-7 7-7" />
   </Icon>
 )
+export const MailIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="m3 7 9 6 9-6" />
+  </Icon>
+)
 export const ShieldIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />

@@ -108,10 +108,10 @@ export default function Landing() {
             </figure>
             <figure className="phone-frame">
               <img
-                src={img('mobile.webp')}
-                width={780}
-                height={1688}
-                alt="Job Tracker on a phone, showing the Up next reminders"
+                src={img('iphone.webp')}
+                width={880}
+                height={1808}
+                alt="Job Tracker on an iPhone 17 Pro, showing the Up next reminders"
                 loading="lazy"
               />
             </figure>
