@@ -9,6 +9,7 @@ import Privacy from './pages/Privacy'
 import Profile from './pages/Profile'
 import ResetPassword from './pages/ResetPassword'
 import Tracker from './pages/Tracker'
+import Unsubscribe from './pages/Unsubscribe'
 
 function Routed() {
   const { session, loading, recovery, notice, linkError } = useAuth()
@@ -20,6 +21,7 @@ function Routed() {
   return (
     <Routes>
       <Route path="/privacy" element={<Privacy />} />
+      <Route path="/unsubscribe" element={<Unsubscribe />} />
       <Route path="/documents" element={session ? <Documents /> : <Navigate to="/login" replace />} />
       <Route path="/profile" element={session ? <Profile /> : <Navigate to="/login" replace />} />
       <Route path="/login" element={session ? <Navigate to="/" replace /> : <Login />} />

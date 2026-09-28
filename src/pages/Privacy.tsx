@@ -62,6 +62,14 @@ export default function Privacy() {
           The website is hosted on GitHub Pages.
         </p>
 
+        <h2>Email reminders</h2>
+        <p>
+          Reminders are <strong>off unless you turn them on</strong> in Profile &amp; settings. When they're on, you get
+          an email on mornings when a next step is due, listing the roles and companies involved. Emails are sent from{' '}
+          {CONTACT_EMAIL} through Gmail, so Google handles them in transit like any other email. Every reminder has a
+          one-click unsubscribe link, and turning reminders off stops them straight away.
+        </p>
+
         <h2>Taking your data with you</h2>
         <p>
           On the Applications page, <strong>Import / export</strong> → <strong>Download CSV</strong> gives you every

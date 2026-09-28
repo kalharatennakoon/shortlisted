@@ -28,7 +28,7 @@ const FEATURES = [
   {
     icon: <BellIcon size={20} />,
     title: 'Never miss a next step',
-    text: 'Add interviews and follow-ups with a date. "Up next" shows what’s due, overdue items first.',
+    text: 'Add interviews and follow-ups with a date. "Up next" shows what’s due, and an optional morning email reminds you.',
   },
   {
     icon: <FileIcon size={20} />,

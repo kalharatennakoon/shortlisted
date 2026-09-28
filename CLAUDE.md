@@ -77,6 +77,13 @@ Documents (migration `20260928000000_documents.sql`, not in Notion):
 - Account deletion: `lib/account.ts` removes the user's files via the Storage API **before** calling
   `delete_my_account()` (Supabase blocks deleting storage objects from SQL); it stops if that fails.
 
+Email reminders (migration `20260928100000_reminders.sql`, function `supabase/functions/reminders/`, see its README):
+- `public.reminder_settings` (one row per user, opt-in): enabled, send_hour (local), time_zone (from the browser),
+  include_follow_ups, unsubscribe_token, last_sent_on, last_test_at. Users can only write the four preference columns.
+- `reminder_recipients()` (security definer, service_role only) joins auth.users for the email address.
+- pg_cron calls the function at :01 and :31 every hour (`schedule.sql`, run by hand; holds the CRON_SECRET).
+- Digest rules live in `functions/reminders/digest.ts` and must stay in line with `src/lib/nextSteps.ts`.
+
 Notion status groups: To-do = Applied, Interviewed · In progress = Offered · Complete = Accepted, Rejected, No Response.
 Notion views: a **board grouped by Status** (shows Name, Company, Applied On) and a **calendar by Applied On**.
 
@@ -96,6 +103,7 @@ src/
   lib/documents.ts     Document library: upload (validate, upload file, insert row, clean up on failure), list, links,
                        setApplicationDocuments(diff), open/download via signed URL, delete, guessKind(file name)
   lib/docCounts.ts     React context: application id -> attached document count (for board/table badges)
+  lib/reminders.ts     Reminder settings (get/save), sendTestEmail + unsubscribe via supabase.functions.invoke('reminders')
   lib/account.ts       deleteMyAccount(): delete Storage files, then rpc; one-time 'account deleted' notice
   lib/config.ts        Owner name, contact email (jobtracker.app.lk@gmail.com), APP_VERSION, privacy date
   lib/dates.ts         Local YYYY-MM-DD helpers (todayKey, addDays, daysBetween). Never use toISOString for "today"
@@ -108,6 +116,7 @@ src/
   pages/Landing.tsx    Public home page for signed-out visitors (hero, features, stats, privacy, CTA)
   pages/Login.tsx      Sign in / sign up / forgot password; OAuth buttons; `?mode=signup` opens sign-up; Home link
   pages/Profile.tsx    #/profile: hero, Basic details, Password (Google-only accounts see a note), Delete account
+  pages/Unsubscribe.tsx  #/unsubscribe?token=… from reminder emails; needs a click (link scanners), works signed out
   pages/Privacy.tsx    Plain-language privacy page (#/privacy, works signed in or out)
   pages/ResetPassword.tsx  Set a new password after a reset link (shown when recovery is true)
   pages/Tracker.tsx    Page shell: views (board/table/calendar/stats), search, optimistic moveTo (reverts on error)
@@ -128,6 +137,7 @@ src/
   components/UpNext.tsx  "Up next" strip above board/table/calendar: Done, follow-up nudges (Follow up today / Mark no response)
   components/AppShell.tsx  Signed-in frame: navbar (logo → home, AccountMenu) + main + Footer
   components/AccountMenu.tsx  Avatar menu (display name): Profile & settings, Privacy, Sign out
+  components/RemindersCard.tsx  Profile card: on/off switch, send hour, Monday follow-ups, time zone, test email
   components/DeleteAccountDialog.tsx  Typed-DELETE confirm; opened from the Profile page
   components/PasswordInput.tsx  Password field with show/hide eye toggle (use for every password input)
   components/Footer.tsx  Full footer (brand + tagline, Product / Privacy / Get in touch columns, © + Built by <name> in
@@ -171,7 +181,7 @@ supabase/migrations/   SQL migrations, run in order
 - [x] One-off import of Kalhara's Notion rows (SQL run in Supabase, kept out of the repo)
 - [x] CSV import (Notion, Excel, Google Sheets) and CSV export, self-serve, no schema change
 - [x] Next steps: interview/follow-up dates, Up next strip, card badges, calendar, follow-up nudges (v1, in-app only)
-- [ ] Email reminders for next steps (needs a scheduled Supabase Edge Function)
+- [x] Email reminders for next steps (opt-in daily digest, Edge Function + pg_cron, Gmail SMTP)
 - [x] Dashboard stats (applications per week, response rate by platform)
 - [x] Privacy page, sign-up privacy note, self-serve account deletion
 - [x] Profile page (basic details, change password, delete account)

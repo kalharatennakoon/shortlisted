@@ -4,6 +4,7 @@ import AppShell from '../components/AppShell'
 import DeleteAccountDialog from '../components/DeleteAccountDialog'
 import { ArrowLeftIcon, KeyIcon, TrashIcon, UserIcon } from '../components/Icons'
 import PasswordInput from '../components/PasswordInput'
+import RemindersCard from '../components/RemindersCard'
 import { useAuth } from '../lib/auth'
 import { errorMessage } from '../lib/errors'
 import {
@@ -203,6 +204,7 @@ export default function Profile() {
         </section>
 
         <DetailsCard />
+        <RemindersCard />
         <PasswordCard />
 
         <section className="card settings-card danger-zone">
