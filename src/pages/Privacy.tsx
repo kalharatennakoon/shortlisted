@@ -48,8 +48,9 @@ export default function Privacy() {
             with a link that works only for you and expires after a minute.
           </li>
           <li>
-            As the person running the service, the site owner can technically see email addresses and data in the
-            database admin panel. They <strong>do not look at, share, or sell</strong> your applications.
+            As the person running the service, the site owner can technically see email addresses, applications and
+            uploaded documents in the Supabase admin dashboard. They <strong>do not open, look at, share, or sell</strong>{' '}
+            your applications or documents.
           </li>
           <li>There are no ads, no analytics and no tracking cookies.</li>
         </ul>
