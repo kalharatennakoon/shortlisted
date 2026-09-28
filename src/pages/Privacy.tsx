@@ -42,7 +42,7 @@ export default function Privacy() {
 
         <h2>Who can see it</h2>
         <ul>
-          <li><strong>Only you</strong> can see your applications in the app. Database security rules stop other users from reading them.</li>
+          <li><strong>Other users can't</strong> see your applications or documents. Database and storage security rules stop anyone else signed in to the app from reading them.</li>
           <li>
             Documents are kept in <strong>private</strong> file storage. They are never public: the app opens them
             with a link that works only for you and expires after a minute.

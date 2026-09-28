@@ -43,7 +43,7 @@ const FEATURES = [
   {
     icon: <ShieldIcon size={20} />,
     title: 'Private by design',
-    text: 'Only you can see your applications. No ads, no tracking, and you can delete everything anytime.',
+    text: 'Other users can never see your applications or documents. No ads, no tracking, and you can delete everything anytime.',
   },
   {
     icon: <PhoneIcon />,
@@ -174,8 +174,9 @@ export default function Landing() {
             <div>
               <h2>Your job hunt stays yours</h2>
               <p className="muted">
-                Only you can see your applications. Passwords are never visible to anyone. No ads, no tracking, and
-                you can delete your account and all your data from your profile at any time.{' '}
+                Other users can never see your applications or documents, and the site owner doesn't look at them.
+                Passwords are never visible to anyone. No ads, no tracking, and you can delete your account and all
+                your data from your profile at any time.{' '}
                 <Link to="/privacy">Read the privacy page</Link>
               </p>
             </div>

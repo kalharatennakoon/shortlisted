@@ -170,7 +170,7 @@ export default function Login() {
         <p className="auth-foot">
           {mode === 'signup' ? (
             <>
-              Only you can see your applications. Your password is never visible to anyone.{' '}
+              Other users can never see your applications or documents. Your password is never visible to anyone.{' '}
               <Link to="/privacy">How your data is handled</Link>
             </>
           ) : (
