@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# local Deno type checks of supabase/functions
+deno.lock
