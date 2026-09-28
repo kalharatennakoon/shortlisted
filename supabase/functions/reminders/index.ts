@@ -173,6 +173,14 @@ function smtp() {
   })
 }
 
+/** UTF-8 -> base64, wrapped at 76 characters per line (RFC 2045). */
+function base64Lines(text: string): string {
+  const bytes = new TextEncoder().encode(text)
+  let bin = ''
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+  return (btoa(bin).match(/.{1,76}/g) ?? []).join('\r\n')
+}
+
 async function closeQuietly(mailer: SMTPClient) {
   try {
     await mailer.close()
@@ -189,8 +197,11 @@ async function send(
     from: `Job Tracker <${env('SMTP_USER')}>`,
     to,
     subject: (test ? '[Test] ' : '') + subjectFor(digest),
-    content: renderText(digest, today, APP_URL, unsubscribePage, test),
-    html: renderHtml(digest, today, APP_URL, unsubscribePage, test),
+    // Pre-encoded as base64: denomailer's own quoted-printable encoder leaves stray "=20"s in some mail apps
+    mimeContent: [
+      { mimeType: 'text/plain; charset="utf-8"', content: base64Lines(renderText(digest, today, APP_URL, unsubscribePage, test)), transferEncoding: 'base64' },
+      { mimeType: 'text/html; charset="utf-8"', content: base64Lines(renderHtml(digest, today, APP_URL, unsubscribePage, test)), transferEncoding: 'base64' },
+    ],
     headers: {
       'List-Unsubscribe': `<${FUNCTION_URL}?unsubscribe=${token}>`,
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
