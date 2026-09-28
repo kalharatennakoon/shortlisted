@@ -58,7 +58,7 @@ export default function Documents() {
           <div>
             <h1>Documents</h1>
             <p className="muted">
-              {loading ? 'Loading…' : `${docs.length} of ${MAX_DOCUMENTS} · private to you`}
+              {loading ? 'Loading…' : `${docs.length} of ${MAX_DOCUMENTS} · not visible to other users`}
             </p>
           </div>
           {!loading && <DocumentUpload className="primary" label="Upload" disabled={full} onUploaded={(d) => setDocs((ds) => [d, ...ds])} />}
