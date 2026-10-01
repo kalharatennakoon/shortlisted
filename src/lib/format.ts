@@ -10,17 +10,3 @@ export const fmtDate = (d: string | null) => {
 
 export const statusClass = (s: Status) => `status-${s.replace(' ', '-').toLowerCase()}`
 
-/** "Acme Labs" -> "AL", "IFS" -> "IF" (first letters of the first two words, or first two letters) */
-export const initials = (name: string) => {
-  const words = name.trim().split(/\s+/).filter(Boolean)
-  if (!words.length) return '?'
-  const s = words.length > 1 ? words[0][0] + words[1][0] : words[0].slice(0, 2)
-  return s.toUpperCase()
-}
-
-/** Stable hue (0-359) for a name, so the same company always gets the same monogram colour */
-export const hueOf = (name: string) => {
-  let h = 0
-  for (const ch of name.toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) % 360
-  return h
-}

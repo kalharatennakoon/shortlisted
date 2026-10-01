@@ -402,10 +402,6 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; }
 .job-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
 .job-date { display: inline-flex; align-items: center; gap: 5px; font-variant-numeric: tabular-nums; }
 
-/* Company monogram (decorative: the name is always next to it) */
-.co-avatar { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; flex: none; font-size: 12px; font-weight: 700; letter-spacing: .02em; background: hsl(var(--av-h) 75% 94%); color: hsl(var(--av-h) 50% 30%); }
-.co-avatar-sm { width: 28px; height: 28px; border-radius: 8px; font-size: 11px; }
-.co-avatar-empty { background: var(--canvas); color: var(--muted); box-shadow: inset 0 0 0 1px var(--border); }
 .priority-chip { padding: 1px 7px; border-radius: 6px; font-size: 11.5px; }
 .priority-chip.priority-high { background: #fef2f2; }
 .priority-chip.priority-medium { background: #fff7e6; }
@@ -431,7 +427,6 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; }
 .apps-table tbody tr:focus-visible { outline: none; background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
 .apps-table tbody tr.empty-row { cursor: default; }
 .apps-table tbody tr.empty-row:hover { background: none; }
-.role-cell { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .role-text { display: flex; flex-direction: column; min-width: 0; }
 .cell-title { font-weight: 600; }
 .cell-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
@@ -763,7 +758,6 @@ label.check input { width: auto; flex: none; margin: 3px 0 0; accent-color: var(
   .column.empty .column-empty { display: none; }
   .apps-table td { padding: 10px 12px; }
   .th-sort { padding: 10px 12px; }
-  .apps-table .role-cell .co-avatar { display: none; }
   .grid-2 { grid-template-columns: 1fr; }
   .modal { padding: 20px; }
   .cal-day { min-height: 56px; padding: 4px; }

@@ -1,6 +1,5 @@
-import { hueOf, initials, statusClass } from '../lib/format'
+import { statusClass } from '../lib/format'
 import { isStale, relativeLabel, urgencyOf } from '../lib/nextSteps'
-import type { CSSProperties } from 'react'
 import type { Application, Status } from '../lib/types'
 import { BellIcon } from './Icons'
 
@@ -27,16 +26,3 @@ export function StatusPill({ status }: { status: Status }) {
   )
 }
 
-/** Company monogram: initials on a soft colour picked from the name (decorative; the name is always shown beside it) */
-export function CompanyAvatar({ name, size = 'md' }: { name: string | null; size?: 'sm' | 'md' }) {
-  const label = name?.trim() || ''
-  return (
-    <span
-      className={`co-avatar co-avatar-${size}${label ? '' : ' co-avatar-empty'}`}
-      style={label ? ({ '--av-h': hueOf(label) } as CSSProperties) : undefined}
-      aria-hidden="true"
-    >
-      {label ? initials(label) : '·'}
-    </span>
-  )
-}

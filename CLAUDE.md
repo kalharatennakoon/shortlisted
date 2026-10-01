@@ -108,7 +108,7 @@ src/
   lib/config.ts        Owner name, contact email (jobtracker.app.lk@gmail.com), APP_VERSION, privacy date
   lib/dates.ts         Local YYYY-MM-DD helpers (todayKey, addDays, daysBetween). Never use toISOString for "today"
   lib/nextSteps.ts     Up-next logic: plannedSteps (overdue first), urgency/labels, needsFollowUp (Applied 14+ days, nothing planned)
-  lib/format.ts        fmtDate, statusClass, initials + hueOf (company monogram)
+  lib/format.ts        fmtDate, statusClass
   lib/errors.ts        errorMessage(e): Supabase errors are plain objects, not Error; always use this for messages
   lib/profile.ts       Profile in auth user_metadata (display_name, target_role, location, linkedin_url; NOT Google's
                        full_name, which Google overwrites each login), changePassword (verifies current pw first)
@@ -124,9 +124,9 @@ src/
   components/Board.tsx  Kanban board on @dnd-kit/core: DragOverlay (tilted lift), drop slot at landing index,
                        mouse (6px to start), touch (press-and-hold 180ms), keyboard (Space, arrows jump columns).
                        Column header tinted by status with count + "+" (onNew(status) opens the form in that status)
-  components/AppTable.tsx  Table view: sortable headers (asc → desc → original order; empty values last), monogram,
+  components/AppTable.tsx  Table view: sortable headers (asc → desc → original order; empty values last),
                        sticky header under the navbar, count footer. Rows open on click or Enter
-  components/Badges.tsx  NextBadge + StatusPill + CompanyAvatar (shared by board and table)
+  components/Badges.tsx  NextBadge + StatusPill (shared by board and table)
   components/CalendarView.tsx  Month calendar by Applied On: month summary, 3 items per day then "+N more" (expands the
                        day), today highlighted (dots + agenda list on mobile)
   components/StatsView.tsx  Stats tab: range switch (30 days / 90 days / All time, by Applied On; undated rows only in
@@ -169,7 +169,7 @@ supabase/migrations/   SQL migrations, run in order
 - Light theme only (Kalhara asked for a white background); don't reintroduce `prefers-color-scheme` dark styles.
 - `html, body` use `overflow-x: clip`, not `hidden`: hidden turns body into a scroll container and silently breaks
   every `position: sticky` (navbar, table header).
-- Company monogram = `.co-avatar` (`.avatar` is the account menu's). The Stats badge is `.stat-chip` (`button.chip` is the form's).
+- The Stats badge is `.stat-chip` (`button.chip` is the form's). Kalhara doesn't want company icons/monograms on cards or rows.
 - No horizontal scrolling anywhere: the board is a grid of 6 columns, 3 under 1180px, stacked under 700px.
   Table hides Company/Platform/Priority under 860px (company shows under the role instead).
 - Status colours live in `.status-*` classes as `--st-bg/--st-fg/--st-dot`; always shown with a text label.

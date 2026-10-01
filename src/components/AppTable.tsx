@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { fmtDate } from '../lib/format'
 import { PRIORITIES, STATUSES, type Application } from '../lib/types'
-import { CompanyAvatar, NextBadge, StatusPill } from './Badges'
+import { NextBadge, StatusPill } from './Badges'
 import { DocBadge } from './DocBadge'
 import { ChevronIcon, FlagIcon } from './Icons'
 
@@ -93,14 +93,11 @@ export default function AppTable({ apps, total, onOpen }: { apps: Application[];
               }}
             >
               <td>
-                <span className="role-cell">
-                  <CompanyAvatar name={a.company} size="sm" />
-                  <span className="role-text">
-                    <span className="cell-title">
-                      {a.name} <DocBadge appId={a.id} />
-                    </span>
-                    {a.company && <span className="cell-sub show-md">{a.company}</span>}
+                <span className="role-text">
+                  <span className="cell-title">
+                    {a.name} <DocBadge appId={a.id} />
                   </span>
+                  {a.company && <span className="cell-sub show-md">{a.company}</span>}
                 </span>
               </td>
               <td className="hide-md">{a.company || <span className="muted">—</span>}</td>
