@@ -320,8 +320,10 @@ a.btn.btn-light:hover { background: #eef2ff; }
 .upnext-done { flex: none; width: 44px; border-left: 1px solid var(--border); border-radius: 0; color: var(--muted); }
 .upnext-done:hover:not(:disabled) { background: #ecfdf3; color: #047857; }
 .upnext-more { margin-top: 8px; }
-.upnext-hint { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); background: var(--canvas); border: 1px dashed var(--border-strong); border-radius: 10px; padding: 10px 14px; margin-bottom: 20px; }
-.upnext-hint svg { flex: none; color: var(--accent); }
+.upnext-hint { display: flex; align-items: center; gap: 12px; font-size: 13px; line-height: 1.5; color: var(--text-2); background: var(--accent-soft); border: 1px solid #dbe6fe; border-radius: 12px; padding: 12px 14px; margin-bottom: 20px; }
+.upnext-hint > span:last-child { min-width: 0; }
+.upnext-hint strong { color: var(--text); font-weight: 600; }
+.upnext-hint-icon { flex: none; width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: var(--surface); color: var(--accent); box-shadow: var(--shadow-sm); }
 
 .followups { margin-top: 12px; border: 1px solid #fed7aa; background: #fffaf5; border-radius: 10px; overflow: hidden; }
 .upnext > .followups:first-child { margin-top: 0; }

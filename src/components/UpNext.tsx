@@ -44,8 +44,14 @@ export default function UpNext({ apps, onOpen, onDone, onPlanFollowUp, onNoRespo
   if (steps.length === 0 && stale.length === 0) {
     return (
       <p className="upnext-hint">
-        <BellIcon size={14} /> Tip: add a <strong>next step</strong> (interview, follow-up…) to an application and it
-        shows up here with a reminder.
+        <span className="upnext-hint-icon" aria-hidden="true">
+          <BellIcon size={14} />
+        </span>
+        {/* One text node: as separate flex items the words would split into columns on narrow screens */}
+        <span>
+          <strong>Tip:</strong> add a <strong>next step</strong> (interview, follow-up…) to an application and it shows up
+          here with a reminder.
+        </span>
       </p>
     )
   }
