@@ -22,15 +22,17 @@ import {
 } from '@dnd-kit/core'
 import { fmtDate, statusClass } from '../lib/format'
 import { STATUSES, type Application, type Status } from '../lib/types'
-import { NextBadge } from './Badges'
+import { CompanyAvatar, NextBadge } from './Badges'
 import { DocBadge } from './DocBadge'
-import { BuildingIcon, FlagIcon } from './Icons'
+import { CalendarIcon, FlagIcon, PlusIcon } from './Icons'
 
 interface Props {
   /** Applications to show (already search-filtered), in display order */
   apps: Application[]
   onOpen: (app: Application) => void
   onMove: (app: Application, status: Status) => void
+  /** Add a new application straight into a column */
+  onNew?: (status: Status) => void
 }
 
 // Prefer the column under the pointer; fall back to overlap (keyboard dragging has no pointer)
@@ -60,22 +62,25 @@ const dropAnimation: DropAnimation = {
 function CardBody({ app }: { app: Application }) {
   return (
     <>
-      <strong className="job-title">{app.name}</strong>
-      {app.company && (
-        <span className="job-company">
-          <BuildingIcon size={13} />
-          {app.company}
+      <span className="job-head">
+        <CompanyAvatar name={app.company} />
+        <span className="job-head-text">
+          <strong className="job-title">{app.name}</strong>
+          {app.company && <span className="job-company">{app.company}</span>}
         </span>
-      )}
+      </span>
       <NextBadge app={app} />
       <span className="job-meta">
         <span className="job-meta-left">
-          <span>{fmtDate(app.applied_on)}</span>
+          <span className="job-date">
+            <CalendarIcon size={12} />
+            {fmtDate(app.applied_on)}
+          </span>
           <DocBadge appId={app.id} />
         </span>
         {app.priority && (
-          <span className={`priority priority-${app.priority.toLowerCase()}`}>
-            <FlagIcon size={12} />
+          <span className={`priority priority-chip priority-${app.priority.toLowerCase()}`}>
+            <FlagIcon size={11} />
             {app.priority}
           </span>
         )}
@@ -113,6 +118,7 @@ function Column({
   activeId,
   leavingId,
   onOpen,
+  onNew,
 }: {
   status: Status
   apps: Application[]
@@ -122,6 +128,7 @@ function Column({
   activeId: string | null
   leavingId: string | null
   onOpen: (app: Application) => void
+  onNew?: (status: Status) => void
 }) {
   const { setNodeRef } = useDroppable({ id: status })
   const count = apps.length + (slotIndex !== null ? 1 : 0) - (leavingId && apps.some((a) => a.id === leavingId) ? 1 : 0)
@@ -134,13 +141,20 @@ function Column({
   return (
     <section
       ref={setNodeRef}
-      className={`column${isOver ? ' drop' : ''}${count === 0 ? ' empty' : ''}${activeId ? ' dragging' : ''}`}
+      className={`column ${statusClass(status)}${isOver ? ' drop' : ''}${count === 0 ? ' empty' : ''}${activeId ? ' dragging' : ''}`}
     >
-      <h3 className="column-head">
-        <span className={`dot ${statusClass(status)}`} />
-        {status}
-        <span className="count">{count}</span>
-      </h3>
+      <header className="column-head">
+        <h3>
+          <span className="dot" />
+          {status}
+        </h3>
+        <span className="count" aria-label={`${count} application${count === 1 ? '' : 's'}`}>{count}</span>
+        {onNew && (
+          <button className="column-add" onClick={() => onNew(status)} aria-label={`Add an application to ${status}`} title={`Add to ${status}`}>
+            <PlusIcon size={14} />
+          </button>
+        )}
+      </header>
       {items}
       {count === 0 && <p className="column-empty">{activeId ? 'Drop here' : 'No applications'}</p>}
     </section>
@@ -148,7 +162,7 @@ function Column({
 }
 
 /** Kanban board: drag cards between status columns (mouse, touch press-and-hold, or keyboard). */
-export default function Board({ apps, onOpen, onMove }: Props) {
+export default function Board({ apps, onOpen, onMove, onNew }: Props) {
   const [active, setActive] = useState<{ app: Application; height: number } | null>(null)
   const [overStatus, setOverStatus] = useState<Status | null>(null)
   const lastDrop = useRef(0)
@@ -244,6 +258,7 @@ export default function Board({ apps, onOpen, onMove }: Props) {
             activeId={active?.app.id ?? null}
             leavingId={leavingId}
             onOpen={open}
+            onNew={onNew}
           />
         ))}
       </div>

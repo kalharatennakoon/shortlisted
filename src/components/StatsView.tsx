@@ -374,7 +374,7 @@ export default function StatsView({ apps }: { apps: Application[] }) {
           <Panel
             title="Applications per week"
             subtitle={`Last ${weeks.length} weeks, by Applied On (weeks start Monday)`}
-            badge={<span className="chip">Avg {avg.toFixed(avg < 10 ? 1 : 0)} / week</span>}
+            badge={<span className="stat-chip">Avg {avg.toFixed(avg < 10 ? 1 : 0)} / week</span>}
             table={
               <table className="viz-table">
                 <thead><tr><th>Week of</th><th className="num">Applications</th></tr></thead>

@@ -8,6 +8,8 @@ import { NEXT_STEPS, PLATFORMS, PRIORITIES, STATUSES, type Application, type App
 interface Props {
   initial?: Application
   initialDate?: string
+  /** Status for a new application (e.g. added from a board column) */
+  initialStatus?: ApplicationInput['status']
   /** Saves the application and makes its attached documents match `documentIds` */
   onSave: (input: ApplicationInput, documentIds: string[]) => Promise<void>
   docs: JobDocument[]
@@ -37,10 +39,11 @@ const empty: ApplicationInput = {
 }
 
 export default function ApplicationForm({
-  initial, initialDate, onSave, onDelete, onClose, docs, initialDocIds = [], onDocUploaded,
+  initial, initialDate, initialStatus, onSave, onDelete, onClose, docs, initialDocIds = [], onDocUploaded,
 }: Props) {
   const [form, setForm] = useState<ApplicationInput>(
-    initial ?? { ...empty, applied_on: initialDate ?? empty.applied_on },
+    // todayKey() here, not in `empty`: a tab left open overnight would otherwise default to yesterday
+    initial ?? { ...empty, applied_on: initialDate ?? todayKey(), status: initialStatus ?? empty.status },
   )
   const [docIds, setDocIds] = useState<string[]>(initialDocIds)
   const [busy, setBusy] = useState(false)
