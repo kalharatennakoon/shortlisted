@@ -9,3 +9,4 @@ export const fmtDate = (d: string | null) => {
 }
 
 export const statusClass = (s: Status) => `status-${s.replace(' ', '-').toLowerCase()}`
+

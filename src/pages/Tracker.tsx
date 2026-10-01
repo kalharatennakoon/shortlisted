@@ -6,18 +6,15 @@ import StatsView from '../components/StatsView'
 import AppShell from '../components/AppShell'
 import UpNext from '../components/UpNext'
 import ImportExportDialog from '../components/ImportExportDialog'
-import { DocBadge } from '../components/DocBadge'
 import { DocCounts } from '../lib/docCounts'
 import { listDocuments, listLinks, setApplicationDocuments } from '../lib/documents'
 import Board from '../components/Board'
-import { NextBadge, StatusPill } from '../components/Badges'
-import { fmtDate } from '../lib/format'
+import AppTable from '../components/AppTable'
 import { todayKey } from '../lib/dates'
 import {
   BoardIcon,
   CalendarIcon,
   ChartIcon,
-  FlagIcon,
   PlusIcon,
   SearchIcon,
   TableIcon,
@@ -32,7 +29,7 @@ import {
 import type { Application, DocumentLink, JobDocument, Status } from '../lib/types'
 
 type View = 'board' | 'table' | 'calendar' | 'stats'
-type Editing = { mode: 'new'; date?: string } | { mode: 'edit'; app: Application } | null
+type Editing = { mode: 'new'; date?: string; status?: Status } | { mode: 'edit'; app: Application } | null
 
 const VIEWS: { id: View; label: string; icon: typeof BoardIcon }[] = [
   { id: 'board', label: 'Board', icon: BoardIcon },
@@ -186,51 +183,14 @@ export default function Tracker() {
             onNew={(date) => setEditing({ mode: 'new', date })}
           />
         ) : view === 'board' ? (
-          <Board apps={filtered} onOpen={(app) => setEditing({ mode: 'edit', app })} onMove={moveTo} />
+          <Board
+            apps={filtered}
+            onOpen={(app) => setEditing({ mode: 'edit', app })}
+            onMove={moveTo}
+            onNew={(status) => setEditing({ mode: 'new', status })}
+          />
         ) : (
-          <div className="table-card">
-            <table className="apps-table">
-              <thead>
-                <tr>
-                  <th>Role</th>
-                  <th className="hide-md">Company</th>
-                  <th>Applied</th>
-                  <th className="hide-md">Platform</th>
-                  <th className="hide-md">Priority</th>
-                  <th className="hide-md">Next step</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((a) => (
-                  <tr key={a.id} onClick={() => setEditing({ mode: 'edit', app: a })}>
-                    <td>
-                      <span className="cell-title">{a.name}</span> <DocBadge appId={a.id} />
-                      {a.company && <span className="cell-sub show-md">{a.company}</span>}
-                    </td>
-                    <td className="hide-md">{a.company ?? '—'}</td>
-                    <td className="nowrap">{fmtDate(a.applied_on)}</td>
-                    <td className="hide-md">{a.platform ?? '—'}</td>
-                    <td className="hide-md">
-                      {a.priority ? (
-                        <span className={`priority priority-${a.priority.toLowerCase()}`}>
-                          <FlagIcon size={12} />
-                          {a.priority}
-                        </span>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td className="hide-md"><NextBadge app={a} /></td>
-                    <td><StatusPill status={a.status} /></td>
-                  </tr>
-                ))}
-                {filtered.length === 0 && (
-                  <tr><td colSpan={7} className="muted">No applications yet.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <AppTable apps={filtered} total={apps.length} onOpen={(app) => setEditing({ mode: 'edit', app })} />
         )}
 
 
@@ -238,6 +198,7 @@ export default function Tracker() {
         <ApplicationForm
           initial={editing.mode === 'edit' ? editing.app : undefined}
           initialDate={editing.mode === 'new' ? editing.date : undefined}
+          initialStatus={editing.mode === 'new' ? editing.status : undefined}
           onClose={() => setEditing(null)}
           docs={docs}
           initialDocIds={editing.mode === 'edit' ? docIdsFor(editing.app.id) : []}

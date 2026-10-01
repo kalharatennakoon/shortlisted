@@ -1,3 +1,4 @@
+import { addDays, fromKey, toKey } from './dates'
 import { PLATFORMS, STATUSES, type Application, type Platform, type Status } from './types'
 
 // "Heard back" = the company responded in some way (including a rejection).
@@ -49,9 +50,7 @@ export function responseByPlatform(apps: Application[]): PlatformRate[] {
     .filter((r) => r.total > 0)
 }
 
-// Local date helpers (avoid UTC shifts from toISOString)
-const toKey = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+// Local dates only (toISOString is UTC and shifts the day)
 const mondayOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7))
 
 export interface WeekCount {
@@ -74,4 +73,85 @@ export function perWeek(apps: Application[], weeks = 12, today = new Date()): We
     if (i !== undefined) buckets[i].count++
   })
   return buckets
+}
+
+// ---------- Range filter ----------
+
+export type RangeId = '30d' | '90d' | 'all'
+export const RANGES: { id: RangeId; label: string; days: number | null }[] = [
+  { id: '30d', label: '30 days', days: 30 },
+  { id: '90d', label: '90 days', days: 90 },
+  { id: 'all', label: 'All time', days: null },
+]
+
+/**
+ * Applications whose Applied On falls in the `days` days ending `endOffset` days before today
+ * (endOffset 0 = the window ends today). `days` null = everything, including undated rows.
+ */
+export function inRange(apps: Application[], days: number | null, today = new Date(), endOffset = 0): Application[] {
+  if (days === null) return apps
+  const end = addDays(toKey(today), -endOffset)
+  const start = addDays(end, -(days - 1))
+  return apps.filter((a) => a.applied_on !== null && a.applied_on >= start && a.applied_on <= end)
+}
+
+/** How many weeks the weekly chart shows for a range. "All time" spans from the first application (4..26 weeks). */
+export function weeksFor(apps: Application[], days: number | null, today = new Date()): number {
+  if (days !== null) return Math.ceil(days / 7) + 1
+  const first = apps.reduce<string | null>((m, a) => (a.applied_on && (!m || a.applied_on < m) ? a.applied_on : m), null)
+  if (!first) return 12
+  const span = Math.floor((mondayOf(today).getTime() - mondayOf(fromKey(first)).getTime()) / (7 * 86_400_000)) + 1
+  return Math.min(26, Math.max(4, span))
+}
+
+// ---------- Funnel ----------
+
+export interface FunnelStep {
+  label: string
+  hint: string
+  count: number
+  ofTotal: number | null // 0..1
+  ofPrev: number | null // 0..1, conversion from the step above
+}
+
+/** Hiring funnel from each application's current status (a rejection after an interview counts as heard back only). */
+export function funnel(apps: Application[]): FunnelStep[] {
+  const count = (set: Status[]) => apps.filter((a) => set.includes(a.status)).length
+  const raw = [
+    { label: 'Applied', hint: 'Every application', count: apps.length },
+    { label: 'Heard back', hint: 'Interviewed, offered, accepted or rejected', count: count(RESPONDED) },
+    { label: 'Interviewed', hint: 'Interviewed, offered or accepted', count: count(INTERVIEWED) },
+    { label: 'Offered', hint: 'Offered or accepted', count: count(['Offered', 'Accepted']) },
+    { label: 'Accepted', hint: 'Accepted an offer', count: count(['Accepted']) },
+  ]
+  return raw.map((r, i) => ({
+    ...r,
+    ofTotal: apps.length ? r.count / apps.length : null,
+    ofPrev: i === 0 ? null : raw[i - 1].count ? r.count / raw[i - 1].count : null,
+  }))
+}
+
+// ---------- Highlights ----------
+
+/** Platform with the best response rate, among platforms with at least `minApps` applications. */
+export function bestPlatform(rates: PlatformRate[], minApps = 3): PlatformRate | null {
+  return rates
+    .filter((r) => r.platform !== 'Not set' && r.total >= minApps)
+    .reduce<PlatformRate | null>((best, r) => (!best || r.rate > best.rate ? r : best), null)
+}
+
+/** Weeks in a row with at least one application, ending this week (or last week if this week has none yet). */
+export function weekStreak(weeks: WeekCount[]): number {
+  let i = weeks.length - 1
+  if (i >= 0 && weeks[i].count === 0) i--
+  let n = 0
+  while (i >= 0 && weeks[i].count > 0) {
+    n++
+    i--
+  }
+  return n
+}
+
+export function busiestWeek(weeks: WeekCount[]): WeekCount | null {
+  return weeks.reduce<WeekCount | null>((b, w) => (w.count > 0 && (!b || w.count >= b.count) ? w : b), null)
 }

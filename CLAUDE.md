@@ -112,7 +112,8 @@ src/
   lib/errors.ts        errorMessage(e): Supabase errors are plain objects, not Error; always use this for messages
   lib/profile.ts       Profile in auth user_metadata (display_name, target_role, location, linkedin_url; NOT Google's
                        full_name, which Google overwrites each login), changePassword (verifies current pw first)
-  lib/stats.ts         Pure stat helpers (summary, by status, response by platform, per week)
+  lib/stats.ts         Pure stat helpers (summary, by status, response by platform, per week, date ranges via inRange/weeksFor,
+                       funnel, bestPlatform (min 3 apps), weekStreak, busiestWeek)
   pages/Landing.tsx    Public home page for signed-out visitors (hero, features, stats, privacy, CTA)
   pages/Login.tsx      Sign in / sign up / forgot password; OAuth buttons; `?mode=signup` opens sign-up; Home link
   pages/Profile.tsx    #/profile: hero, Basic details, Password (Google-only accounts see a note), Delete account
@@ -121,10 +122,16 @@ src/
   pages/ResetPassword.tsx  Set a new password after a reset link (shown when recovery is true)
   pages/Tracker.tsx    Page shell: views (board/table/calendar/stats), search, optimistic moveTo (reverts on error)
   components/Board.tsx  Kanban board on @dnd-kit/core: DragOverlay (tilted lift), drop slot at landing index,
-                       mouse (6px to start), touch (press-and-hold 180ms), keyboard (Space, arrows jump columns)
+                       mouse (6px to start), touch (press-and-hold 180ms), keyboard (Space, arrows jump columns).
+                       Column header tinted by status with count + "+" (onNew(status) opens the form in that status)
+  components/AppTable.tsx  Table view: sortable headers (asc → desc → original order; empty values last),
+                       sticky header under the navbar, count footer. Rows open on click or Enter
   components/Badges.tsx  NextBadge + StatusPill (shared by board and table)
-  components/CalendarView.tsx  Month calendar by Applied On (dots + agenda list on mobile)
-  components/StatsView.tsx  Stats tab: stat tiles + weekly columns + bar lists, each with a table toggle
+  components/CalendarView.tsx  Month calendar by Applied On: month summary, 3 items per day then "+N more" (expands the
+                       day), today highlighted (dots + agenda list on mobile)
+  components/StatsView.tsx  Stats tab: range switch (30 days / 90 days / All time, by Applied On; undated rows only in
+                       All time), KPI tiles (sparkline, response ring, delta vs previous period), weekly columns with
+                       avg line, hiring funnel, status split bar + legend, platform bars, Highlights. Table toggle per chart
   components/ApplicationForm.tsx  Add/edit/delete modal (incl. next step + quick dates, documents). onSave gets
                        (input, documentIds); Tracker saves the app then syncs links
   components/AttachedDocuments.tsx  Documents fieldset in the form: attached list, pick from library, upload new
@@ -135,7 +142,8 @@ src/
   components/ImportExportDialog.tsx  Import (pick/drop CSV → review counts, preview, warnings → import) + export
                        CSV + template download. Portalled. Tracker reloads the list after an import
   components/UpNext.tsx  "Up next" strip above board/table/calendar: Done, follow-up nudges (Follow up today / Mark no response)
-  components/AppShell.tsx  Signed-in frame: navbar (logo → home, AccountMenu) + main + Footer
+  components/AppShell.tsx  Signed-in frame: navbar (logo → home, AccountMenu) + main + Footer. Publishes the navbar
+                       height as the --nav-h CSS variable (ResizeObserver) for sticky elements
   components/AccountMenu.tsx  Avatar menu (display name): Profile & settings, Privacy, Sign out
   components/RemindersCard.tsx  Profile card: on/off switch, send hour, Monday follow-ups, time zone, test email
   components/DeleteAccountDialog.tsx  Typed-DELETE confirm; opened from the Profile page
@@ -159,6 +167,9 @@ supabase/migrations/   SQL migrations, run in order
 
 ## UI
 - Light theme only (Kalhara asked for a white background); don't reintroduce `prefers-color-scheme` dark styles.
+- `html, body` use `overflow-x: clip`, not `hidden`: hidden turns body into a scroll container and silently breaks
+  every `position: sticky` (navbar, table header).
+- The Stats badge is `.stat-chip` (`button.chip` is the form's). Kalhara doesn't want company icons/monograms on cards or rows.
 - No horizontal scrolling anywhere: the board is a grid of 6 columns, 3 under 1180px, stacked under 700px.
   Table hides Company/Platform/Priority under 860px (company shows under the role instead).
 - Status colours live in `.status-*` classes as `--st-bg/--st-fg/--st-dot`; always shown with a text label.
@@ -175,6 +186,8 @@ supabase/migrations/   SQL migrations, run in order
 - Hand-built HTML/CSS, no chart library. One series per chart in `--series-1` (light `#2a78d6`, dark `#3987e5`, both validated for contrast on the app surfaces).
 - "Response rate" = share with status Interviewed, Offered, Accepted or Rejected (any reply counts). Defined in `lib/stats.ts`.
 - Every chart has a hover tooltip and a "Show table" fallback; keep both when adding charts.
+- Exception to one series: the status split bar uses the `.status-*` colours, always with its labelled legend.
+- Bars grow in with a CSS animation; `prefers-reduced-motion` turns it off. Keep that for new charts.
 
 ## Roadmap (ideas to build next)
 - [x] Calendar view by Applied On (matches the Notion calendar view)
