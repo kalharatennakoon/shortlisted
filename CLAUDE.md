@@ -112,7 +112,8 @@ src/
   lib/errors.ts        errorMessage(e): Supabase errors are plain objects, not Error; always use this for messages
   lib/profile.ts       Profile in auth user_metadata (display_name, target_role, location, linkedin_url; NOT Google's
                        full_name, which Google overwrites each login), changePassword (verifies current pw first)
-  lib/stats.ts         Pure stat helpers (summary, by status, response by platform, per week)
+  lib/stats.ts         Pure stat helpers (summary, by status, response by platform, per week, date ranges via inRange/weeksFor,
+                       funnel, bestPlatform (min 3 apps), weekStreak, busiestWeek)
   pages/Landing.tsx    Public home page for signed-out visitors (hero, features, stats, privacy, CTA)
   pages/Login.tsx      Sign in / sign up / forgot password; OAuth buttons; `?mode=signup` opens sign-up; Home link
   pages/Profile.tsx    #/profile: hero, Basic details, Password (Google-only accounts see a note), Delete account
@@ -124,7 +125,9 @@ src/
                        mouse (6px to start), touch (press-and-hold 180ms), keyboard (Space, arrows jump columns)
   components/Badges.tsx  NextBadge + StatusPill (shared by board and table)
   components/CalendarView.tsx  Month calendar by Applied On (dots + agenda list on mobile)
-  components/StatsView.tsx  Stats tab: stat tiles + weekly columns + bar lists, each with a table toggle
+  components/StatsView.tsx  Stats tab: range switch (30 days / 90 days / All time, by Applied On; undated rows only in
+                       All time), KPI tiles (sparkline, response ring, delta vs previous period), weekly columns with
+                       avg line, hiring funnel, status split bar + legend, platform bars, Highlights. Table toggle per chart
   components/ApplicationForm.tsx  Add/edit/delete modal (incl. next step + quick dates, documents). onSave gets
                        (input, documentIds); Tracker saves the app then syncs links
   components/AttachedDocuments.tsx  Documents fieldset in the form: attached list, pick from library, upload new
@@ -175,6 +178,8 @@ supabase/migrations/   SQL migrations, run in order
 - Hand-built HTML/CSS, no chart library. One series per chart in `--series-1` (light `#2a78d6`, dark `#3987e5`, both validated for contrast on the app surfaces).
 - "Response rate" = share with status Interviewed, Offered, Accepted or Rejected (any reply counts). Defined in `lib/stats.ts`.
 - Every chart has a hover tooltip and a "Show table" fallback; keep both when adding charts.
+- Exception to one series: the status split bar uses the `.status-*` colours, always with its labelled legend.
+- Bars grow in with a CSS animation; `prefers-reduced-motion` turns it off. Keep that for new charts.
 
 ## Roadmap (ideas to build next)
 - [x] Calendar view by Applied On (matches the Notion calendar view)
