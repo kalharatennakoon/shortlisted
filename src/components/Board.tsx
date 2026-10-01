@@ -22,7 +22,7 @@ import {
 } from '@dnd-kit/core'
 import { fmtDate, statusClass } from '../lib/format'
 import { STATUSES, type Application, type Status } from '../lib/types'
-import { CompanyAvatar, NextBadge } from './Badges'
+import { NextBadge } from './Badges'
 import { DocBadge } from './DocBadge'
 import { CalendarIcon, FlagIcon, PlusIcon } from './Icons'
 
@@ -62,12 +62,9 @@ const dropAnimation: DropAnimation = {
 function CardBody({ app }: { app: Application }) {
   return (
     <>
-      <span className="job-head">
-        <CompanyAvatar name={app.company} />
-        <span className="job-head-text">
-          <strong className="job-title">{app.name}</strong>
-          {app.company && <span className="job-company">{app.company}</span>}
-        </span>
+      <span className="job-head-text">
+        <strong className="job-title">{app.name}</strong>
+        {app.company && <span className="job-company">{app.company}</span>}
       </span>
       <NextBadge app={app} />
       <span className="job-meta">
