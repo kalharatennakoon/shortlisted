@@ -33,7 +33,10 @@ export default function Privacy() {
           <li>
             Any <strong>profile details</strong> you choose to add (name, target role, location, LinkedIn link).
           </li>
-          <li>The <strong>applications you add</strong>: role, company, dates, status, links, notes and next steps (like interview or follow-up dates).</li>
+          <li>
+            The <strong>applications you add</strong>: role, company, dates, status, links, notes, next steps (like
+            interview or follow-up dates and times) and a contact email for the employer, if you add one.
+          </li>
           <li>
             Any <strong>documents you upload</strong> (such as CVs and cover letters), up to 5 MB each, and which
             applications you attached them to.
@@ -68,6 +71,14 @@ export default function Privacy() {
           an email on mornings when a next step is due, listing the roles and companies involved. Emails are sent from{' '}
           {CONTACT_EMAIL} through Gmail, so Google handles them in transit like any other email. Every reminder has a
           one-click unsubscribe link, and turning reminders off stops them straight away.
+        </p>
+
+        <h2>Email drafts and your calendar</h2>
+        <p>
+          <strong>Draft email</strong> and <strong>Add to calendar</strong> open your own mail app, Gmail, Google
+          Calendar or a calendar file, with the role, company and date filled in. Job Tracker doesn't send the email
+          or add the event itself, and it never gets access to your mailbox or calendar. Nothing leaves the app until
+          you press one of those buttons.
         </p>
 
         <h2>Taking your data with you</h2>

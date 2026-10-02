@@ -25,3 +25,11 @@ function ymd(key: string): [number, number, number] {
   const [y, m, d] = key.split('-').map(Number)
   return [y, m - 1, d]
 }
+
+/** 'HH:MM' from what the form ('14:30') or Postgres ('14:30:00') gives; null if it isn't a time. */
+export const timeKey = (t: string | null | undefined): string | null => {
+  const m = t?.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/)
+  if (!m) return null
+  const h = Number(m[1])
+  return h < 24 && Number(m[2]) < 60 ? `${String(h).padStart(2, '0')}:${m[2]}` : null
+}

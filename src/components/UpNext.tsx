@@ -4,7 +4,7 @@ import { FOLLOW_UP_AFTER_DAYS, needsFollowUp, plannedSteps } from '../lib/nextSt
 import { postingSummary, postingUrl } from '../lib/posting'
 import type { Application } from '../lib/types'
 import { PostingLink } from './Badges'
-import { BellIcon, CheckIcon, ChevronIcon } from './Icons'
+import { BellIcon, CalendarPlusIcon, CheckIcon, ChevronIcon, MailIcon } from './Icons'
 
 interface Props {
   apps: Application[]
@@ -12,6 +12,10 @@ interface Props {
   onDone: (app: Application) => Promise<void>
   onPlanFollowUp: (app: Application) => Promise<void>
   onNoResponse: (app: Application) => Promise<void>
+  /** Draft a follow-up / thank-you email for this application */
+  onEmail: (app: Application) => void
+  /** Add this application's next step to a calendar */
+  onCalendar: (app: Application) => void
 }
 
 // How many steps to show before "Show all": fewer on phones so the board stays in reach
@@ -23,8 +27,11 @@ function ago(days: number) {
   return weeks >= 1 ? `${weeks} week${weeks > 1 ? 's' : ''} ago` : `${days} days ago`
 }
 
-/** "Up next": dated next steps (overdue first) and gentle follow-up nudges for stale applications. */
-export default function UpNext({ apps, onOpen, onDone, onPlanFollowUp, onNoResponse }: Props) {
+/**
+ * "Up next": dated next steps (overdue first) and gentle follow-up nudges for stale applications.
+ * Each step has a shortcut: a follow-up opens the email draft, everything else goes to the calendar.
+ */
+export default function UpNext({ apps, onOpen, onDone, onPlanFollowUp, onNoResponse, onEmail, onCalendar }: Props) {
   const today = todayKey()
   const steps = plannedSteps(apps, today)
   const stale = needsFollowUp(apps, today)
@@ -87,6 +94,26 @@ export default function UpNext({ apps, onOpen, onDone, onPlanFollowUp, onNoRespo
                     </span>
                   </span>
                 </button>
+                {/* a follow-up is an email to write; anything else is a date to keep */}
+                {app.next_step === 'Follow up' ? (
+                  <button
+                    className="upnext-act"
+                    onClick={() => onEmail(app)}
+                    aria-label={`Draft a follow-up email for ${app.name}`}
+                    title="Draft a follow-up email"
+                  >
+                    <MailIcon size={16} />
+                  </button>
+                ) : (
+                  <button
+                    className="upnext-act"
+                    onClick={() => onCalendar(app)}
+                    aria-label={`Add "${app.next_step}" for ${app.name} to your calendar`}
+                    title="Add to calendar"
+                  >
+                    <CalendarPlusIcon size={16} />
+                  </button>
+                )}
                 <button
                   className="upnext-done"
                   onClick={act(app, onDone)}
@@ -136,6 +163,9 @@ export default function UpNext({ apps, onOpen, onDone, onPlanFollowUp, onNoRespo
                     </span>
                   )}
                   <span className="followup-actions">
+                    <button className="secondary small-btn" onClick={() => onEmail(app)}>
+                      <MailIcon size={13} /> Draft email
+                    </button>
                     <button className="secondary small-btn" onClick={act(app, onPlanFollowUp)} disabled={busy === app.id}>
                       Follow up today
                     </button>

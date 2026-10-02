@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { toKey as key } from '../lib/dates'
-import { urgencyOf } from '../lib/nextSteps'
+import { fmtTime } from '../lib/format'
+import { stepTime, urgencyOf } from '../lib/nextSteps'
 import type { Application } from '../lib/types'
 import { BellIcon, ChevronIcon, PlusIcon } from './Icons'
 
@@ -27,14 +28,15 @@ export default function CalendarView({ apps, onOpen, onNew }: Props) {
     return new Date(now.getFullYear(), now.getMonth(), 1)
   })
 
-  // Steps first within a day: they're the actionable ones
+  // Steps first within a day: they're the actionable ones (all-day steps, then by time)
   const entries = useMemo<Entry[]>(() => {
     const list: Entry[] = []
     apps.forEach((a) => {
       if (a.next_step && a.next_date) list.push({ kind: 'step', date: a.next_date, app: a })
       if (a.applied_on) list.push({ kind: 'applied', date: a.applied_on, app: a })
     })
-    return list.sort((x, y) => (x.date === y.date ? (x.kind === 'step' ? -1 : 1) : x.date < y.date ? -1 : 1))
+    const order = (e: Entry) => `${e.date} ${e.kind === 'step' ? `0${stepTime(e.app) ?? ''}` : '1'}`
+    return list.sort((x, y) => (order(x) < order(y) ? -1 : order(x) > order(y) ? 1 : 0))
   }, [apps])
 
   const byDate = useMemo(() => {
@@ -67,7 +69,7 @@ export default function CalendarView({ apps, onOpen, onNew }: Props) {
     e.kind === 'step' ? `cal-item cal-step urgency-${urgencyOf(e.date, today)}` : `cal-item ${statusClass(e.app)}`
   const itemTitle = (e: Entry) =>
     e.kind === 'step'
-      ? `${e.app.next_step}: ${e.app.name}${e.app.company ? ' · ' + e.app.company : ''}`
+      ? `${e.app.next_step}${stepTime(e.app) ? ` at ${fmtTime(stepTime(e.app))}` : ''}: ${e.app.name}${e.app.company ? ' · ' + e.app.company : ''}`
       : `Applied: ${e.app.name}${e.app.company ? ' · ' + e.app.company : ''} (${e.app.status})`
 
   return (
@@ -182,6 +184,7 @@ export default function CalendarView({ apps, onOpen, onNew }: Props) {
                 <span className={`next-badge urgency-${urgencyOf(e.date, today)}`}>
                   <BellIcon size={12} />
                   {e.app.next_step}
+                  {stepTime(e.app) && ` · ${fmtTime(stepTime(e.app))}`}
                 </span>
               ) : (
                 <span className={`pill ${statusClass(e.app)}`}>{e.app.status}</span>

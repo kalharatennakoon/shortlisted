@@ -23,6 +23,12 @@ export interface Application {
   notes: string | null
   next_step: NextStep | null
   next_date: string | null // YYYY-MM-DD
+  // Next-step time and contact email (migration 20261002120000). Optional, like the posting check below:
+  // only sent when set, so the app keeps working if the code is deployed before the migration is applied.
+  /** Time of the next step, 'HH:MM' from the form or 'HH:MM:SS' from Postgres; null/absent = all day */
+  next_time?: string | null
+  /** Recruiter / hiring contact, used as the recipient of follow-up emails */
+  contact_email?: string | null
   // Posting check (migration 20261002000000). Optional: rows loaded before that migration is applied don't have them.
   /** Day the user last opened the job posting to check it (YYYY-MM-DD) */
   posting_checked_on?: string | null
