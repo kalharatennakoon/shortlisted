@@ -1,8 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { errorMessage } from '../lib/errors'
-import { ExternalIcon, XIcon } from './Icons'
+import { ExternalIcon, MailIcon, XIcon } from './Icons'
 import AttachedDocuments from './AttachedDocuments'
-import { addDays, todayKey } from '../lib/dates'
+import { CalendarButtons } from './AddToCalendar'
+import TimePicker from './TimePicker'
+import EmailDialog, { type EmailUse } from './EmailDialog'
+import { eventFor } from '../lib/calendarLinks'
+import { addDays, timeKey, todayKey } from '../lib/dates'
+import { appUrl } from '../lib/supabase'
 import { postingState, postingSummary, postingUrl } from '../lib/posting'
 import { NEXT_STEPS, PLATFORMS, PRIORITIES, STATUSES, type Application, type ApplicationInput, type JobDocument } from '../lib/types'
 
@@ -49,6 +54,7 @@ export default function ApplicationForm({
   const [docIds, setDocIds] = useState<string[]>(initialDocIds)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [emailOpen, setEmailOpen] = useState(false)
 
   const set = <K extends keyof ApplicationInput>(key: K, value: ApplicationInput[K]) =>
     setForm((f) => ({ ...f, [key]: value }))
@@ -63,6 +69,19 @@ export default function ApplicationForm({
       ...f,
       job_url: value,
       ...(f.posting_checked_on || f.posting_closed ? { posting_checked_on: null, posting_closed: false } : {}),
+    }))
+
+  // The next step as a calendar event, from what's in the form right now (saved or not)
+  const calendarEvent = eventFor({ ...form, id: initial?.id }, appUrl())
+  /** No date, no time: a time only means something on a day */
+  const setNextDate = (value: string | null) =>
+    setForm((f) => ({ ...f, next_date: value, ...(!value && f.next_time ? { next_time: null } : {}) }))
+  /** The email draft was opened: keep the address, and plan the check for a reply if asked */
+  const onEmailUsed = ({ contactEmail, remindOn }: EmailUse) =>
+    setForm((f) => ({
+      ...f,
+      ...(contactEmail ? { contact_email: contactEmail } : {}),
+      ...(remindOn ? { next_step: 'Follow up' as const, next_date: remindOn, ...(f.next_time ? { next_time: null } : {}) } : {}),
     }))
 
   async function run(fn: () => Promise<void>) {
@@ -83,57 +102,73 @@ export default function ApplicationForm({
     const clean = Object.fromEntries(
       Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]),
     ) as ApplicationInput
+    // Columns from a later migration (see types.ts): leave them out unless there is something to save or
+    // the row already has them, so saving still works on a database that hasn't had the migration yet
+    for (const key of ['next_time', 'contact_email'] as const) {
+      if (clean[key] == null && initial?.[key] === undefined) delete clean[key]
+    }
+    if ('next_time' in clean) clean.next_time = clean.next_date ? timeKey(clean.next_time) : null
     run(() => onSave(clean, docIds))
   }
 
   return (
+    <>
     <div className="modal-backdrop" onClick={onClose}>
-      <form className="card modal" onSubmit={onSubmit} onClick={(e) => e.stopPropagation()}>
+      <form className="card modal app-form" onSubmit={onSubmit} onClick={(e) => e.stopPropagation()}>
         <header className="modal-head">
           <h2>{initial ? 'Edit application' : 'New application'}</h2>
           <button type="button" className="ghost icon-only" onClick={onClose} aria-label="Close">
             <XIcon size={18} />
           </button>
         </header>
-        <label>
-          Role
-          <input required value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. DevOps Engineer" />
-        </label>
-        <label>
-          Company
-          <input value={form.company ?? ''} onChange={(e) => set('company', e.target.value)} />
-        </label>
-        <div className="grid-2">
+
+        <section className="form-section" aria-labelledby="sec-job">
+          <h3 id="sec-job">The job</h3>
           <label>
-            Applied on
-            <input type="date" value={form.applied_on ?? ''} onChange={(e) => set('applied_on', e.target.value)} />
+            Role
+            <input required value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. DevOps Engineer" />
           </label>
           <label>
-            Status
-            <select value={form.status} onChange={(e) => set('status', e.target.value as ApplicationInput['status'])}>
-              {STATUSES.map((s) => <option key={s}>{s}</option>)}
-            </select>
+            Company
+            <input value={form.company ?? ''} onChange={(e) => set('company', e.target.value)} />
           </label>
-          <label>
-            Platform
-            <select value={form.platform ?? ''} onChange={(e) => set('platform', (e.target.value || null) as ApplicationInput['platform'])}>
-              <option value="">—</option>
-              {PLATFORMS.map((p) => <option key={p}>{p}</option>)}
-            </select>
-          </label>
-          <label>
-            Priority
-            <select value={form.priority ?? ''} onChange={(e) => set('priority', (e.target.value || null) as ApplicationInput['priority'])}>
-              <option value="">—</option>
-              {PRIORITIES.map((p) => <option key={p}>{p}</option>)}
-            </select>
-          </label>
-        </div>
-        <fieldset className="next-fields">
-          <legend>
-            Next step <span className="muted">optional</span>
-          </legend>
+        </section>
+
+        <section className="form-section" aria-labelledby="sec-application">
+          <h3 id="sec-application">Your application</h3>
           <div className="grid-2">
+            <label>
+              Applied on
+              <input type="date" value={form.applied_on ?? ''} onChange={(e) => set('applied_on', e.target.value)} />
+            </label>
+            <label>
+              Status
+              <select value={form.status} onChange={(e) => set('status', e.target.value as ApplicationInput['status'])}>
+                {STATUSES.map((s) => <option key={s}>{s}</option>)}
+              </select>
+            </label>
+            <label>
+              Platform
+              <select value={form.platform ?? ''} onChange={(e) => set('platform', (e.target.value || null) as ApplicationInput['platform'])}>
+                <option value="">—</option>
+                {PLATFORMS.map((p) => <option key={p}>{p}</option>)}
+              </select>
+            </label>
+            <label>
+              Priority
+              <select value={form.priority ?? ''} onChange={(e) => set('priority', (e.target.value || null) as ApplicationInput['priority'])}>
+                <option value="">—</option>
+                {PRIORITIES.map((p) => <option key={p}>{p}</option>)}
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section className="form-section" aria-labelledby="sec-next">
+          <h3 id="sec-next">
+            Next step <span className="muted">optional</span>
+          </h3>
+          <div className="next-grid">
             <label>
               What
               <select
@@ -147,19 +182,30 @@ export default function ApplicationForm({
               </select>
             </label>
             <label>
-              When
+              Date
               <input
                 type="date"
                 value={form.next_date ?? ''}
                 // a step needs a date so it can show up in "Up next"
                 required={Boolean(form.next_step)}
-                onChange={(e) => set('next_date', e.target.value || null)}
+                onChange={(e) => setNextDate(e.target.value || null)}
               />
             </label>
+            {/* Not a <label> wrapper: the picker holds several buttons (see CLAUDE.md, UI) */}
+            <div className="field">
+              <span id="next-time-label">Time</span>
+              <TimePicker
+                labelledBy="next-time-label"
+                value={form.next_time}
+                disabled={!form.next_date}
+                disabledHint="Choose a date first"
+                onChange={(t) => set('next_time', t)}
+              />
+            </div>
           </div>
           <div className="quick-dates">
             {QUICK_DATES.map(([label, days]) => (
-              <button key={label} type="button" className="chip" onClick={() => set('next_date', addDays(todayKey(), days))}>
+              <button key={label} type="button" className="chip" onClick={() => setNextDate(addDays(todayKey(), days))}>
                 {label}
               </button>
             ))}
@@ -167,50 +213,90 @@ export default function ApplicationForm({
               <button
                 type="button"
                 className="link small"
-                onClick={() => setForm((f) => ({ ...f, next_step: null, next_date: null }))}
+                onClick={() => setForm((f) => ({ ...f, next_step: null, next_date: null, ...(f.next_time ? { next_time: null } : {}) }))}
               >
                 Clear
               </button>
             )}
           </div>
-        </fieldset>
-        {/* Not a <label> wrapper: it also holds a link and buttons (see CLAUDE.md, UI) */}
-        <div className="field">
-          <label htmlFor="job-url">Job posting URL</label>
-          <div className="posting-row">
-            <input
-              id="job-url"
-              type="url"
-              placeholder="https://…"
-              value={form.job_url ?? ''}
-              onChange={(e) => setJobUrl(e.target.value)}
-            />
-            {url && (
-              <a className="btn secondary" href={url} target="_blank" rel="noopener noreferrer">
-                Open <ExternalIcon size={14} />
-              </a>
-            )}
-          </div>
-          {url && (
-            <div className="posting-check">
-              <span className={`posting-state ${postingState(form)}`}>{postingSummary(form)}</span>
-              <span className="spacer" />
-              <button type="button" className="chip" onClick={() => checkPosting(false)}>
-                {form.posting_closed ? 'Mark as open' : 'Still open today'}
-              </button>
-              {!form.posting_closed && (
-                <button type="button" className="chip" onClick={() => checkPosting(true)}>
-                  Posting closed
-                </button>
-              )}
+          {calendarEvent && (
+            <div className="cal-add-row">
+              <span className="muted small">Add to calendar</span>
+              <CalendarButtons event={calendarEvent} chips />
             </div>
           )}
-        </div>
+        </section>
+
+        <section className="form-section" aria-labelledby="sec-posting">
+          <h3 id="sec-posting">
+            Job posting <span className="muted">optional</span>
+          </h3>
+          {/* Not a <label> wrapper: it also holds a link and buttons (see CLAUDE.md, UI) */}
+          <div className="field">
+            <label htmlFor="job-url">Link</label>
+            <div className="posting-row">
+              <input
+                id="job-url"
+                type="url"
+                placeholder="https://…"
+                value={form.job_url ?? ''}
+                onChange={(e) => setJobUrl(e.target.value)}
+              />
+              {url && (
+                <a className="btn secondary" href={url} target="_blank" rel="noopener noreferrer">
+                  Open <ExternalIcon size={14} />
+                </a>
+              )}
+            </div>
+            {url && (
+              <div className="posting-check">
+                <span className={`posting-state ${postingState(form)}`}>{postingSummary(form)}</span>
+                <span className="spacer" />
+                <button type="button" className="chip" onClick={() => checkPosting(false)}>
+                  {form.posting_closed ? 'Mark as open' : 'Still open today'}
+                </button>
+                {!form.posting_closed && (
+                  <button type="button" className="chip" onClick={() => checkPosting(true)}>
+                    Posting closed
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="form-section" aria-labelledby="sec-contact">
+          <h3 id="sec-contact">
+            Contact <span className="muted">optional</span>
+          </h3>
+          <div className="field">
+            <label htmlFor="contact-email">Email of the recruiter or hiring contact</label>
+            <div className="posting-row">
+              <input
+                id="contact-email"
+                type="email"
+                inputMode="email"
+                autoComplete="off"
+                maxLength={254}
+                placeholder="name@company.com"
+                value={form.contact_email ?? ''}
+                onChange={(e) => set('contact_email', e.target.value)}
+              />
+              <button type="button" className="secondary" onClick={() => setEmailOpen(true)} title="Draft a follow-up or thank-you email">
+                <MailIcon size={15} /> Draft email
+              </button>
+            </div>
+          </div>
+        </section>
+
         <AttachedDocuments docs={docs} selected={docIds} onChange={setDocIds} onUploaded={onDocUploaded} />
-        <label>
-          Notes
-          <textarea rows={4} value={form.notes ?? ''} onChange={(e) => set('notes', e.target.value)} />
-        </label>
+
+        <section className="form-section" aria-labelledby="sec-notes">
+          <h3 id="sec-notes">
+            <label htmlFor="app-notes">Notes</label> <span className="muted">optional</span>
+          </h3>
+          <textarea id="app-notes" rows={4} value={form.notes ?? ''} onChange={(e) => set('notes', e.target.value)} />
+        </section>
         {error && <p className="error">{error}</p>}
         <div className="actions">
           {onDelete && (
@@ -224,5 +310,8 @@ export default function ApplicationForm({
         </div>
       </form>
     </div>
+    {/* Outside the form on purpose: it has its own buttons and inputs, and must not submit this one */}
+    {emailOpen && <EmailDialog app={form} onUsed={onEmailUsed} onClose={() => setEmailOpen(false)} />}
+    </>
   )
 }

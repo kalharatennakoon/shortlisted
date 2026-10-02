@@ -5,10 +5,12 @@ import {
   BellIcon,
   BoardIcon,
   CalendarIcon,
+  CalendarPlusIcon,
   ChartIcon,
   CheckIcon,
   FileIcon,
   Logo,
+  MailIcon,
   PauseIcon,
   PlayIcon,
   ShieldIcon,
@@ -253,7 +255,7 @@ function Journey() {
 // ---------- feature tiles ----------
 
 const UP_NEXT = [
-  { urgency: 'today', when: 'Today', step: 'Interview', role: 'Primary Teacher', company: 'Northgate Academy' },
+  { urgency: 'today', when: 'Today · 2:30 PM', step: 'Interview', role: 'Primary Teacher', company: 'Northgate Academy' },
   { urgency: 'soon', when: 'Tomorrow', step: 'Follow up', role: 'Accountant', company: 'Bluepeak Finance' },
   { urgency: 'soon', when: 'Saturday', step: 'Call', role: 'Marketing Executive', company: 'Cedar & Sage' },
 ]
@@ -263,11 +265,16 @@ const DOCS = [
   { name: 'Teaching CV', kind: 'CV', used: 'Sent with 2 applications' },
 ]
 
-function Tile({ icon, title, text, children, className = '' }: { icon: ReactNode; title: string; text: string; children?: ReactNode; className?: string }) {
+const EMAIL_KINDS = ['Follow up', 'Thank you', 'Check in']
+
+function Tile({ icon, title, text, children, className = '', isNew = false }: { icon: ReactNode; title: string; text: string; children?: ReactNode; className?: string; isNew?: boolean }) {
   return (
     <article className={`lp-tile ${className}`}>
       <div className="lp-tile-text">
-        <span className="lp-tile-icon">{icon}</span>
+        <span className="lp-tile-top">
+          <span className="lp-tile-icon">{icon}</span>
+          {isNew && <span className="lp-new">New in v2</span>}
+        </span>
         <h3>{title}</h3>
         <p>{text}</p>
       </div>
@@ -345,7 +352,7 @@ export default function Landing() {
           <div className="landing-inner">
             <div className="lp-section-head">
               <h2>The parts of a job hunt that are easy to lose</h2>
-              <p>Dates, documents and the spreadsheet you started with all live next to the board.</p>
+              <p>Dates, documents, follow-up emails and the spreadsheet you started with all live next to the board.</p>
             </div>
             <div className="lp-tiles">
               <Tile
@@ -389,6 +396,57 @@ export default function Landing() {
                     </li>
                   ))}
                 </ul>
+              </Tile>
+              <Tile
+                isNew
+                icon={<CalendarPlusIcon size={20} />}
+                title="Interviews in your calendar"
+                text="Give a next step a time, then add it to Google Calendar, Apple Calendar or Outlook in two taps."
+              >
+                <div className="lp-mini lp-calmock" aria-hidden="true">
+                  <div className="cal-event">
+                    <span className="cal-event-icon"><CalendarPlusIcon size={18} /></span>
+                    <span>
+                      <strong>Interview: Primary Teacher</strong>
+                      <span className="muted small block">Mon, 5 Oct · 2:30 PM – 3:30 PM</span>
+                    </span>
+                  </div>
+                  <div className="lp-pills">
+                    <span>Google Calendar</span>
+                    <span>Apple / Outlook</span>
+                  </div>
+                </div>
+              </Tile>
+              <Tile
+                isNew
+                className="wide"
+                icon={<MailIcon size={20} />}
+                title="Follow up without a blank page"
+                text="Choose a follow-up, a thank-you or a check-in. The email is already filled in with the role, the company and the date you applied, and it opens in your own Gmail or mail app to edit and send."
+              >
+                <div className="lp-mini lp-mail" aria-hidden="true">
+                  <div className="lp-mail-kinds">
+                    {EMAIL_KINDS.map((k, i) => (
+                      <span key={k} className={i === 0 ? 'on' : ''}>{k}</span>
+                    ))}
+                  </div>
+                  <div className="lp-mail-row">
+                    <small>To</small>
+                    <span>recruitment@lakemont.example</span>
+                  </div>
+                  <div className="lp-mail-row">
+                    <small>Subject</small>
+                    <span>Following up on my application: Staff Nurse</span>
+                  </div>
+                  <p className="lp-mail-body">
+                    I applied for the Staff Nurse position at Lakemont Hospital on 12 September 2026, and I am
+                    writing to ask whether there is any update on my application.
+                  </p>
+                  <div className="lp-mail-foot">
+                    <span className="lp-fake-btn">Open in mail app</span>
+                    <span className="lp-fake-btn primary">Open in Gmail</span>
+                  </div>
+                </div>
               </Tile>
               <Tile
                 icon={<UploadIcon size={20} />}

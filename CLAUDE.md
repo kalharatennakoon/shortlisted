@@ -43,6 +43,8 @@ Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
     `og-image.png` still has its own baked-in device + screenshot.
   - Sample data in screenshots and on the page is fictional and deliberately spans fields (nursing, teaching, finance,
     engineering, hospitality, design, IT). Keep it that way: Kalhara doesn't want it to look IT-only.
+- Feature tiles: seven on a 6-column grid (wide 4 + 2, 2 + wide 4, 2 + 2 + 2). The calendar and email tiles carry a
+  "New in v2" tag (`isNew`) and small static previews (`.lp-calmock`, `.lp-mail`); drop the tag at the next version.
 - Landing classes are prefixed `lp-`. Motion is deliberate, not scattered: one page-load rise in the hero, the view tour
   (tab progress line is the timer: its `animationend` shows the next view; pauses on hover/off-screen, stops on click,
   Pause/Play button), the roles ticker, and the application card moving through the stages. All of it stops under
@@ -72,6 +74,8 @@ Table `public.applications`, defined in `supabase/migrations/`:
 | `job_url`, `notes` | (new, not in Notion) | text |
 | `next_step` | (new) | enum: Interview, Follow up, Assessment, Call, Other |
 | `next_date` | (new) | date; form requires both or neither |
+| `next_time` | (new) | time of the next step, optional; null = all day. Postgres returns `HH:MM:SS`, use `timeKey()` |
+| `contact_email` | (new) | recruiter / hiring contact, optional; the "To" of email drafts |
 | `posting_checked_on` | (new) | date the user last opened the job posting; null = never |
 | `posting_closed` | (new) | boolean, default false: the posting has been taken down |
 | `user_id` | (owner) | uuid → auth.users, defaults to `auth.uid()` |
@@ -101,6 +105,24 @@ The two fields are optional in `Application` and only sent when set, so the app 
 before the migration is applied; changing the job URL resets them. A user suggested this on X; automatic checking was
 ruled out (no backend, and job sites block bots), and Kalhara chose not to add a "Saved" stage before Applied.
 
+Email drafts and add to calendar (migration `20261002120000_next_time_contact.sql`):
+- No backend and no sending: `lib/emailTemplates.ts` builds a follow-up / thank-you / check-in draft and the dialog opens it
+  in Gmail (`mail.google.com/mail/?view=cm`), the device's mail app (`mailto:`) or copies it. The mail-app button leaves the
+  dialog open, because a computer with no mail app set up does nothing on a `mailto:` link.
+- Using a draft saves the "To" address as `contact_email` and, if ticked, plans a "Follow up" step 7 days out
+  (`REPLY_CHECK_DAYS`) so the application leaves the "no reply" list. The signature is the profile's display name + LinkedIn.
+- `lib/calendarLinks.ts` turns a dated next step into one event: a Google Calendar template link (local time + `ctz`) or an
+  .ics file (UTC, 1-hour reminder when timed; all-day when there is no time). The UID includes the date, so a second
+  interview is a second event. Nothing is synced: Kalhara chose buttons only; a private subscribe-able feed was the other
+  option and would need an Edge Function + a token table.
+- `next_time` and `contact_email` follow the posting-check rule: optional in `Application`, only sent when set (the form
+  drops them when empty on a row that doesn't have the column; `clearTime()` in Tracker). `errorMessage` turns PostgREST's
+  PGRST204 (unknown column) into a readable message.
+- The time is picked with `components/TimePicker.tsx`, not `<input type="time">` (Kalhara found the browser pop-up dated):
+  a button styled like the inputs plus a panel with an hour grid, 5-minute steps and AM/PM. It follows the device's
+  12/24-hour setting (24 hours: a 0-23 grid, no AM/PM), saves on every tap, and closes on Done, Escape or an outside click.
+- Reminder emails don't show the time yet: `functions/reminders` would need `next_time` in its select and a redeploy.
+
 Notion status groups: To-do = Applied, Interviewed · In progress = Offered · Complete = Accepted, Rejected, No Response.
 Notion views: a **board grouped by Status** (shows Name, Company, Applied On) and a **calendar by Applied On**.
 
@@ -123,11 +145,16 @@ src/
   lib/reminders.ts     Reminder settings (get/save), sendTestEmail + unsubscribe via supabase.functions.invoke('reminders')
   lib/account.ts       deleteMyAccount(): delete Storage files, then rpc; one-time 'account deleted' notice
   lib/config.ts        Owner name, contact email (jobtracker.app.lk@gmail.com), APP_VERSION, privacy date
-  lib/dates.ts         Local YYYY-MM-DD helpers (todayKey, addDays, daysBetween). Never use toISOString for "today"
+  lib/emailTemplates.ts  Pure: EMAIL_TEMPLATES, defaultTemplate (thank-you once interviewed), buildEmail, isEmail,
+                       mailtoUrl (CRLF line breaks), gmailUrl
+  lib/calendarLinks.ts Pure: eventFor(app) -> CalendarEvent, googleCalendarUrl, icsFile (RFC 5545: escaping, 75-byte
+                       folding), icsFileName, eventWhen, downloadIcs
+  lib/dates.ts         Local YYYY-MM-DD helpers (todayKey, addDays, daysBetween, timeKey -> 'HH:MM'). Never use toISOString for "today"
   lib/posting.ts       Job posting check (manual, no automatic fetching): postingUrl (http(s) only, never `javascript:`),
                        postingState (none/closed/unchecked/due after 7 days/checked), postingSummary
-  lib/nextSteps.ts     Up-next logic: plannedSteps (overdue first), urgency/labels, needsFollowUp (Applied 14+ days, nothing planned)
-  lib/format.ts        fmtDate, statusClass
+  lib/nextSteps.ts     Up-next logic: plannedSteps (overdue first, then by time), urgency/labels (stepLabel adds the time),
+                       stepTime, needsFollowUp (Applied 14+ days, nothing planned)
+  lib/format.ts        fmtDate, fmtTime, statusClass
   lib/errors.ts        errorMessage(e): Supabase errors are plain objects, not Error; always use this for messages
   lib/profile.ts       Profile in auth user_metadata (display_name, target_role, location, linkedin_url; NOT Google's
                        full_name, which Google overwrites each login), changePassword (verifies current pw first)
@@ -154,16 +181,25 @@ src/
   components/StatsView.tsx  Stats tab: range switch (30 days / 90 days / All time, by Applied On; undated rows only in
                        All time), KPI tiles (sparkline, response ring, delta vs previous period), weekly columns with
                        avg line, hiring funnel, status split bar + legend, platform bars, Highlights. Table toggle per chart
-  components/ApplicationForm.tsx  Add/edit/delete modal (incl. next step + quick dates, documents). onSave gets
-                       (input, documentIds); Tracker saves the app then syncs links
-  components/AttachedDocuments.tsx  Documents fieldset in the form: attached list, pick from library, upload new
+  components/ApplicationForm.tsx  Add/edit/delete modal, one `.form-section` panel per group: The job, Your application,
+                       Next step (date + TimePicker + quick dates, add-to-calendar chips), Job posting, Contact (email +
+                       Draft email), Documents, Notes. onSave gets (input, documentIds); Tracker saves the app then syncs
+                       links. The email dialog is rendered outside the <form> so it can't submit it
+  components/TimePicker.tsx  Custom time field + panel (see "Email drafts and add to calendar"). Holds several buttons:
+                       never wrap it in a <label>, pass `labelledBy`
+  components/EmailDialog.tsx  Email draft: template switch (edits kept per template), To, Subject, Message, reminder
+                       checkbox, Open in Gmail / mail app / Copy. Portalled, `.modal-top` (opens over the form), not a <form>
+  components/AddToCalendar.tsx  CalendarButtons (Google Calendar link + .ics download; `chips` for the form) and the
+                       default export CalendarDialog used from Up next
+  components/AttachedDocuments.tsx  Documents section (`.form-section`) in the form: attached list, pick from library, upload new
   components/DocumentUpload.tsx  Upload button + inline confirm (name, kind). Not a <form>: it sits inside the app form
   components/DocBadge.tsx  Paperclip + count on board cards and table rows
   pages/Documents.tsx  #/documents library: upload, open, download, rename/change type, delete (inline confirm),
                        "Sent with" list. Linked from the account menu and the form
   components/ImportExportDialog.tsx  Import (pick/drop CSV → review counts, preview, warnings → import) + export
                        CSV + template download. Portalled. Tracker reloads the list after an import
-  components/UpNext.tsx  "Up next" strip above board/table/calendar: Done, follow-up nudges (Follow up today / Mark no response)
+  components/UpNext.tsx  "Up next" strip above board/table/calendar: per step an email (Follow up) or add-to-calendar
+                       (everything else) shortcut + Done; follow-up nudges (Draft email / Follow up today / Mark no response)
   components/AppShell.tsx  Signed-in frame: navbar (logo → home, AccountMenu) + main + Footer. Publishes the navbar
                        height as the --nav-h CSS variable (ResizeObserver) for sticky elements
   components/AccountMenu.tsx  Avatar menu (display name): Profile & settings, Privacy, Sign out
@@ -222,6 +258,9 @@ supabase/migrations/   SQL migrations, run in order
 - [x] Profile page (basic details, change password, delete account)
 - [x] Documents per application (library of CVs/cover letters, attach to many applications)
 - [x] Posting check: open the saved job URL from cards/rows, record "still open" / "posting closed" and the date checked
-- [ ] Contacts / recruiter per application
+- [x] Follow-up email templates (follow-up, thank-you, check-in) opened in the user's own mail, plus a contact email
+- [x] Add to calendar for next steps (Google Calendar link, .ics file), with an optional time
+- [ ] Private calendar feed to subscribe to (needs an Edge Function), time in reminder emails
+- [ ] Contacts / recruiter per application (name, LinkedIn, last contacted; only the email exists so far)
 - [x] Password reset flow and Google sign-in (GitHub button ready once enabled in Supabase)
 - [ ] Tests (Vitest + React Testing Library)

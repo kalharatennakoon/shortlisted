@@ -45,6 +45,24 @@ export const CalendarIcon = (p: IconProps) => (
     <path d="M16 2v4M8 2v4M3 10h18" />
   </Icon>
 )
+export const CalendarPlusIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3" y="4" width="18" height="18" rx="2" />
+    <path d="M16 2v4M8 2v4M3 10h18M12 13v6M9 16h6" />
+  </Icon>
+)
+export const ClockIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
+  </Icon>
+)
+export const CopyIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="9" y="9" width="12" height="12" rx="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </Icon>
+)
 export const ChartIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M3 3v18h18" />

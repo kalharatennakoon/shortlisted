@@ -6,6 +6,8 @@ import StatsView from '../components/StatsView'
 import AppShell from '../components/AppShell'
 import UpNext from '../components/UpNext'
 import ImportExportDialog from '../components/ImportExportDialog'
+import EmailDialog, { type EmailUse } from '../components/EmailDialog'
+import CalendarDialog from '../components/AddToCalendar'
 import { DocCounts } from '../lib/docCounts'
 import { listDocuments, listLinks, setApplicationDocuments } from '../lib/documents'
 import Board from '../components/Board'
@@ -46,6 +48,8 @@ export default function Tracker() {
   const [query, setQuery] = useState('')
   const [editing, setEditing] = useState<Editing>(null)
   const [ioOpen, setIoOpen] = useState(false)
+  const [emailFor, setEmailFor] = useState<Application | null>(null)
+  const [calendarFor, setCalendarFor] = useState<Application | null>(null)
   const [docs, setDocs] = useState<JobDocument[]>([])
   const [links, setLinks] = useState<DocumentLink[]>([])
 
@@ -92,6 +96,18 @@ export default function Tracker() {
     } catch (e) {
       setError(errorMessage(e))
     }
+  }
+
+  // next_time only exists once its migration has run: clear it only on rows that have one (see types.ts)
+  const clearTime = (app: Application) => (app.next_time ? { next_time: null } : {})
+
+  /** An email draft was opened from "Up next": remember the address, and plan the check for a reply if asked */
+  async function emailUsed(app: Application, { contactEmail, remindOn }: EmailUse) {
+    const fields: Partial<Application> = {
+      ...(contactEmail && contactEmail !== app.contact_email ? { contact_email: contactEmail } : {}),
+      ...(remindOn ? { next_step: 'Follow up' as const, next_date: remindOn, ...clearTime(app) } : {}),
+    }
+    if (Object.keys(fields).length) await patch(app, fields)
   }
 
   // Optimistic: move the card immediately, save in the background, undo if the save fails
@@ -167,9 +183,11 @@ export default function Tracker() {
           <UpNext
             apps={apps}
             onOpen={(app) => setEditing({ mode: 'edit', app })}
-            onDone={(app) => patch(app, { next_step: null, next_date: null })}
+            onDone={(app) => patch(app, { next_step: null, next_date: null, ...clearTime(app) })}
             onPlanFollowUp={(app) => patch(app, { next_step: 'Follow up', next_date: todayKey() })}
             onNoResponse={(app) => patch(app, { status: 'No Response' })}
+            onEmail={setEmailFor}
+            onCalendar={setCalendarFor}
           />
         )}
         {loading ? (
@@ -231,6 +249,19 @@ export default function Tracker() {
                 }
               : undefined
           }
+        />
+      )}
+      {emailFor && (
+        <EmailDialog app={emailFor} onUsed={(use) => emailUsed(emailFor, use)} onClose={() => setEmailFor(null)} />
+      )}
+      {calendarFor && (
+        <CalendarDialog
+          app={calendarFor}
+          onClose={() => setCalendarFor(null)}
+          onEdit={() => {
+            setEditing({ mode: 'edit', app: calendarFor })
+            setCalendarFor(null)
+          }}
         />
       )}
       {ioOpen && (

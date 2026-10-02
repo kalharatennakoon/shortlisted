@@ -1,5 +1,5 @@
 import { statusClass } from '../lib/format'
-import { isStale, relativeLabel, urgencyOf } from '../lib/nextSteps'
+import { isStale, relativeLabel, stepLabel, urgencyOf } from '../lib/nextSteps'
 import type { Application, Status } from '../lib/types'
 import { postingSummary, postingUrl } from '../lib/posting'
 import { BellIcon, ExternalIcon } from './Icons'
@@ -8,7 +8,7 @@ import { BellIcon, ExternalIcon } from './Icons'
 export function NextBadge({ app }: { app: Application }) {
   if (app.next_step && app.next_date) {
     return (
-      <span className={`next-badge urgency-${urgencyOf(app.next_date)}`} title={`${app.next_step}: ${relativeLabel(app.next_date)}`}>
+      <span className={`next-badge urgency-${urgencyOf(app.next_date)}`} title={`${app.next_step}: ${stepLabel(app)}`}>
         <BellIcon size={12} />
         {app.next_step} · {relativeLabel(app.next_date, undefined, true)}
       </span>

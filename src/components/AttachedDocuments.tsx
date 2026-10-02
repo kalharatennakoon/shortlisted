@@ -35,10 +35,10 @@ export default function AttachedDocuments({
   }
 
   return (
-    <fieldset className="next-fields docs-fields">
-      <legend>
+    <section className="form-section" aria-labelledby="sec-documents">
+      <h3 id="sec-documents">
         Documents <span className="muted">optional</span>
-      </legend>
+      </h3>
 
       {attached.length > 0 ? (
         <ul className="doc-list">
@@ -116,6 +116,6 @@ export default function AttachedDocuments({
         <p className="muted small">You've reached {MAX_DOCUMENTS} documents. Delete one on the Documents page to upload more.</p>
       )}
       {error && <p className="error">{error}</p>}
-    </fieldset>
+    </section>
   )
 }

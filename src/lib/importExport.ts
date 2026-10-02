@@ -3,7 +3,8 @@
 // headers are matched loosely, enum values case-insensitively, and dates in the common formats.
 
 import { parseCsv, toCsv } from './csv'
-import { toKey } from './dates'
+import { timeKey, toKey } from './dates'
+import { isEmail } from './emailTemplates'
 import {
   NEXT_STEPS,
   PLATFORMS,
@@ -29,9 +30,11 @@ const EXPORT_COLUMNS: [Field, string][] = [
   ['status', 'Status'],
   ['next_step', 'Next Step'],
   ['next_date', 'Next Date'],
+  ['next_time', 'Next Time'],
   ['job_url', 'Job URL'],
   ['posting_checked_on', 'Posting Checked On'],
   ['posting_closed', 'Posting Closed'],
+  ['contact_email', 'Contact Email'],
   ['notes', 'Notes'],
 ]
 
@@ -46,9 +49,11 @@ alias('priority', 'priority')
 alias('status', 'status', 'stage')
 alias('next_step', 'nextstep')
 alias('next_date', 'nextdate', 'nextstepdate', 'duedate', 'followupdate')
+alias('next_time', 'nexttime', 'nextsteptime', 'time', 'interviewtime')
 alias('job_url', 'joburl', 'url', 'link', 'joblink', 'jobposting', 'posting')
 alias('posting_checked_on', 'postingcheckedon', 'postingchecked', 'datechecked', 'checkedon', 'lastchecked')
 alias('posting_closed', 'postingclosed', 'jobclosed', 'closed', 'expired')
+alias('contact_email', 'contactemail', 'recruiteremail', 'hremail', 'email')
 alias('notes', 'notes', 'note', 'comments', 'comment', 'description')
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -59,7 +64,11 @@ export function applicationsToCsv(apps: Application[]): string {
   return toCsv([
     EXPORT_COLUMNS.map(([, header]) => header),
     ...apps.map((a) =>
-      EXPORT_COLUMNS.map(([field]) => (field === 'posting_closed' ? (a.posting_closed ? 'Yes' : '') : ((a[field] as string | null) ?? ''))),
+      EXPORT_COLUMNS.map(([field]) => {
+        if (field === 'posting_closed') return a.posting_closed ? 'Yes' : ''
+        if (field === 'next_time') return (a.next_date && timeKey(a.next_time)) || '' // 14:30, not Postgres' 14:30:00
+        return (a[field] as string | null) ?? ''
+      }),
     ),
   ])
 }
@@ -67,7 +76,7 @@ export function applicationsToCsv(apps: Application[]): string {
 export function templateCsv(): string {
   return toCsv([
     EXPORT_COLUMNS.map(([, header]) => header),
-    ['DevOps Engineer', 'Acme Ltd', '2026-09-20', 'LinkedIn', 'High', 'Applied', 'Follow up', '2026-10-04', 'https://example.com/jobs/123', '2026-09-27', '', 'Referred by a friend'],
+    ['DevOps Engineer', 'Acme Ltd', '2026-09-20', 'LinkedIn', 'High', 'Applied', 'Interview', '2026-10-04', '14:30', 'https://example.com/jobs/123', '2026-09-27', '', 'hr@example.com', 'Referred by a friend'],
   ])
 }
 
@@ -184,6 +193,15 @@ function toInput(raw: Partial<Record<Field, string>>): { input: ApplicationInput
   }
   if (next_date && !next_step) next_step = 'Other'
 
+  // "Next Time" column, or a time written after the date ("October 4, 2026 2:30 PM", as Notion exports it)
+  const time =
+    parseTime(raw.next_time) ??
+    parseTime(raw.next_date?.trim().match(/(\d{1,2}(?::\d{2}){1,2}\s*(?:[ap]\.?m\.?)?|\d{1,2}\s*[ap]\.?m\.?)$/i)?.[0])
+  if (raw.next_time?.trim() && !time) warnings.push(`Next time "${raw.next_time.trim()}" not understood, left blank`)
+
+  const contact = raw.contact_email?.trim() || null
+  if (contact && !isEmail(contact)) warnings.push(`Contact email "${contact}" doesn't look like an email address, left blank`)
+
   const url = raw.job_url?.trim() || null
   const checked = parseDate(raw.posting_checked_on)
   if (checked.warning) warnings.push(`Posting checked date ${checked.warning}`)
@@ -204,6 +222,9 @@ function toInput(raw: Partial<Record<Field, string>>): { input: ApplicationInput
       // only sent when the file has them, so an import still works before the posting-check migration is applied
       ...(checked.value ? { posting_checked_on: checked.value } : {}),
       ...(closed ? { posting_closed: true } : {}),
+      // same for the next-step time and contact email (migration 20261002120000)
+      ...(time && next_step && next_date ? { next_time: time } : {}),
+      ...(contact && isEmail(contact) ? { contact_email: contact } : {}),
     },
   }
 }
@@ -269,6 +290,18 @@ export function parseDate(input: string | undefined): { value: string | null; wa
     return { value: null, warning: `"${s}" is not a valid date, left blank` }
   }
   return { value: toKey(date) }
+}
+
+/** Accepts 14:30, 14:30:00, 2:30 PM, 2.30pm and 2pm. Returns 'HH:MM', or null. */
+export function parseTime(input: string | undefined): string | null {
+  const m = input?.trim().match(/^(\d{1,2})(?:[:.](\d{2}))?(?::\d{2})?\s*([ap])\.?m\.?$|^(\d{1,2}):(\d{2})(?::\d{2})?$/i)
+  if (!m) return null
+  if (m[4] !== undefined) return timeKey(`${m[4]}:${m[5]}`)
+  let h = Number(m[1])
+  if (h < 1 || h > 12) return null
+  if (m[3].toLowerCase() === 'p' && h < 12) h += 12
+  if (m[3].toLowerCase() === 'a' && h === 12) h = 0
+  return timeKey(`${h}:${m[2] ?? '00'}`)
 }
 
 function monthIndex(name: string) {
