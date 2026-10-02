@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { errorMessage } from '../lib/errors'
-import { XIcon } from './Icons'
+import { ExternalIcon, XIcon } from './Icons'
 import AttachedDocuments from './AttachedDocuments'
 import { addDays, todayKey } from '../lib/dates'
+import { postingState, postingSummary, postingUrl } from '../lib/posting'
 import { NEXT_STEPS, PLATFORMS, PRIORITIES, STATUSES, type Application, type ApplicationInput, type JobDocument } from '../lib/types'
 
 interface Props {
@@ -51,6 +52,18 @@ export default function ApplicationForm({
 
   const set = <K extends keyof ApplicationInput>(key: K, value: ApplicationInput[K]) =>
     setForm((f) => ({ ...f, [key]: value }))
+
+  const url = postingUrl(form)
+  /** Record that the posting was looked at today, and whether it was still up */
+  const checkPosting = (closed: boolean) =>
+    setForm((f) => ({ ...f, posting_checked_on: todayKey(), posting_closed: closed }))
+  /** A different link is a different posting: the old check no longer says anything about it */
+  const setJobUrl = (value: string) =>
+    setForm((f) => ({
+      ...f,
+      job_url: value,
+      ...(f.posting_checked_on || f.posting_closed ? { posting_checked_on: null, posting_closed: false } : {}),
+    }))
 
   async function run(fn: () => Promise<void>) {
     setBusy(true)
@@ -161,10 +174,38 @@ export default function ApplicationForm({
             )}
           </div>
         </fieldset>
-        <label>
-          Job posting URL
-          <input type="url" value={form.job_url ?? ''} onChange={(e) => set('job_url', e.target.value)} />
-        </label>
+        {/* Not a <label> wrapper: it also holds a link and buttons (see CLAUDE.md, UI) */}
+        <div className="field">
+          <label htmlFor="job-url">Job posting URL</label>
+          <div className="posting-row">
+            <input
+              id="job-url"
+              type="url"
+              placeholder="https://…"
+              value={form.job_url ?? ''}
+              onChange={(e) => setJobUrl(e.target.value)}
+            />
+            {url && (
+              <a className="btn secondary" href={url} target="_blank" rel="noopener noreferrer">
+                Open <ExternalIcon size={14} />
+              </a>
+            )}
+          </div>
+          {url && (
+            <div className="posting-check">
+              <span className={`posting-state ${postingState(form)}`}>{postingSummary(form)}</span>
+              <span className="spacer" />
+              <button type="button" className="chip" onClick={() => checkPosting(false)}>
+                {form.posting_closed ? 'Mark as open' : 'Still open today'}
+              </button>
+              {!form.posting_closed && (
+                <button type="button" className="chip" onClick={() => checkPosting(true)}>
+                  Posting closed
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <AttachedDocuments docs={docs} selected={docIds} onChange={setDocIds} onUploaded={onDocUploaded} />
         <label>
           Notes

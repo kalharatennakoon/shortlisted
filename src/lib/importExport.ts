@@ -30,6 +30,8 @@ const EXPORT_COLUMNS: [Field, string][] = [
   ['next_step', 'Next Step'],
   ['next_date', 'Next Date'],
   ['job_url', 'Job URL'],
+  ['posting_checked_on', 'Posting Checked On'],
+  ['posting_closed', 'Posting Closed'],
   ['notes', 'Notes'],
 ]
 
@@ -45,6 +47,8 @@ alias('status', 'status', 'stage')
 alias('next_step', 'nextstep')
 alias('next_date', 'nextdate', 'nextstepdate', 'duedate', 'followupdate')
 alias('job_url', 'joburl', 'url', 'link', 'joblink', 'jobposting', 'posting')
+alias('posting_checked_on', 'postingcheckedon', 'postingchecked', 'datechecked', 'checkedon', 'lastchecked')
+alias('posting_closed', 'postingclosed', 'jobclosed', 'closed', 'expired')
 alias('notes', 'notes', 'note', 'comments', 'comment', 'description')
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -54,14 +58,16 @@ const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
 export function applicationsToCsv(apps: Application[]): string {
   return toCsv([
     EXPORT_COLUMNS.map(([, header]) => header),
-    ...apps.map((a) => EXPORT_COLUMNS.map(([field]) => (a[field] as string | null) ?? '')),
+    ...apps.map((a) =>
+      EXPORT_COLUMNS.map(([field]) => (field === 'posting_closed' ? (a.posting_closed ? 'Yes' : '') : ((a[field] as string | null) ?? ''))),
+    ),
   ])
 }
 
 export function templateCsv(): string {
   return toCsv([
     EXPORT_COLUMNS.map(([, header]) => header),
-    ['DevOps Engineer', 'Acme Ltd', '2026-09-20', 'LinkedIn', 'High', 'Applied', 'Follow up', '2026-10-04', 'https://example.com/jobs/123', 'Referred by a friend'],
+    ['DevOps Engineer', 'Acme Ltd', '2026-09-20', 'LinkedIn', 'High', 'Applied', 'Follow up', '2026-10-04', 'https://example.com/jobs/123', '2026-09-27', '', 'Referred by a friend'],
   ])
 }
 
@@ -179,6 +185,9 @@ function toInput(raw: Partial<Record<Field, string>>): { input: ApplicationInput
   if (next_date && !next_step) next_step = 'Other'
 
   const url = raw.job_url?.trim() || null
+  const checked = parseDate(raw.posting_checked_on)
+  if (checked.warning) warnings.push(`Posting checked date ${checked.warning}`)
+  const closed = /^(yes|y|true|1|closed|expired)$/i.test(raw.posting_closed ?? '')
   return {
     warnings,
     input: {
@@ -192,6 +201,9 @@ function toInput(raw: Partial<Record<Field, string>>): { input: ApplicationInput
       notes: raw.notes || null,
       next_step,
       next_date: next_step ? next_date : null,
+      // only sent when the file has them, so an import still works before the posting-check migration is applied
+      ...(checked.value ? { posting_checked_on: checked.value } : {}),
+      ...(closed ? { posting_closed: true } : {}),
     },
   }
 }

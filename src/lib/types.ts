@@ -23,6 +23,11 @@ export interface Application {
   notes: string | null
   next_step: NextStep | null
   next_date: string | null // YYYY-MM-DD
+  // Posting check (migration 20261002000000). Optional: rows loaded before that migration is applied don't have them.
+  /** Day the user last opened the job posting to check it (YYYY-MM-DD) */
+  posting_checked_on?: string | null
+  /** The posting has been taken down */
+  posting_closed?: boolean
   created_at: string
   updated_at: string
 }

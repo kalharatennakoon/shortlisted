@@ -33,10 +33,20 @@ Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
 ## Routing & landing
 - `#/` shows the Tracker when signed in and the Landing page when signed out. If there is a message to show
   (auth notice, email-link error, account-deleted flag), signed-out `#/` redirects to `#/login` so it isn't lost.
-- Landing screenshots live in `public/landing/*.webp` (board 1600×1111, stats 1600×1111), loaded via
-  `import.meta.env.BASE_URL`. `iphone.webp` (880×1808, transparent) is the whole device: an iPhone 17 Pro frame
-  (402×874pt screen, Dynamic Island, status bar, Action/volume/side buttons, Camera Control) around a 402×812
-  screenshot. The same device image is used in `og-image.png`. Retake them when the UI changes noticeably.
+- Landing images live in `public/landing/`, loaded via `import.meta.env.BASE_URL`. Retake them when the UI changes noticeably:
+  - `board|table|calendar|stats.webp`: desktop views, 1600×1091 (captured at a 1320×900 viewport).
+  - `m-board|m-table|m-calendar|m-stats.webp`: phone screens, 804×1624 (402×812 viewport at 2x), scrolled so the view itself
+    is at the top under the navbar.
+  - `insights.webp` (1600×598) and `m-insights.webp` (740×1562): the Stats funnel + platform panels, desktop and stacked.
+  - `iphone.webp` (880×1808): the iPhone 17 Pro frame only (Dynamic Island, status bar, buttons) with a **transparent
+    screen**; the phone screenshots sit in a window behind it (`.lp-phone-screen`, percentages match the cut-out).
+    `og-image.png` still has its own baked-in device + screenshot.
+  - Sample data in screenshots and on the page is fictional and deliberately spans fields (nursing, teaching, finance,
+    engineering, hospitality, design, IT). Keep it that way: Kalhara doesn't want it to look IT-only.
+- Landing classes are prefixed `lp-`. Motion is deliberate, not scattered: one page-load rise in the hero, the view tour
+  (tab progress line is the timer: its `animationend` shows the next view; pauses on hover/off-screen, stops on click,
+  Pause/Play button), the roles ticker, and the application card moving through the stages. All of it stops under
+  `prefers-reduced-motion`, and the tour/journey only run while on screen (`useInView`).
 - Link previews: Open Graph + Twitter tags in `index.html` point at the absolute URL of `public/og-image.png`
   (1200×630). Update the image and tags together, and re-scrape with LinkedIn's Post Inspector after changing them.
 
@@ -62,6 +72,8 @@ Table `public.applications`, defined in `supabase/migrations/`:
 | `job_url`, `notes` | (new, not in Notion) | text |
 | `next_step` | (new) | enum: Interview, Follow up, Assessment, Call, Other |
 | `next_date` | (new) | date; form requires both or neither |
+| `posting_checked_on` | (new) | date the user last opened the job posting; null = never |
+| `posting_closed` | (new) | boolean, default false: the posting has been taken down |
 | `user_id` | (owner) | uuid → auth.users, defaults to `auth.uid()` |
 
 Documents (migration `20260928000000_documents.sql`, not in Notion):
@@ -83,6 +95,11 @@ Email reminders (migration `20260928100000_reminders.sql`, function `supabase/fu
 - `reminder_recipients()` (security definer, service_role only) joins auth.users for the email address.
 - pg_cron calls the function at :01 and :31 every hour (`schedule.sql`, run by hand; holds the CRON_SECRET).
 - Digest rules live in `functions/reminders/digest.ts` and must stay in line with `src/lib/nextSteps.ts`.
+
+Posting check (migration `20261002000000_posting_check.sql`): set by hand in the form ("Still open today" / "Posting closed").
+The two fields are optional in `Application` and only sent when set, so the app keeps working if the code is deployed
+before the migration is applied; changing the job URL resets them. A user suggested this on X; automatic checking was
+ruled out (no backend, and job sites block bots), and Kalhara chose not to add a "Saved" stage before Applied.
 
 Notion status groups: To-do = Applied, Interviewed · In progress = Offered · Complete = Accepted, Rejected, No Response.
 Notion views: a **board grouped by Status** (shows Name, Company, Applied On) and a **calendar by Applied On**.
@@ -107,6 +124,8 @@ src/
   lib/account.ts       deleteMyAccount(): delete Storage files, then rpc; one-time 'account deleted' notice
   lib/config.ts        Owner name, contact email (jobtracker.app.lk@gmail.com), APP_VERSION, privacy date
   lib/dates.ts         Local YYYY-MM-DD helpers (todayKey, addDays, daysBetween). Never use toISOString for "today"
+  lib/posting.ts       Job posting check (manual, no automatic fetching): postingUrl (http(s) only, never `javascript:`),
+                       postingState (none/closed/unchecked/due after 7 days/checked), postingSummary
   lib/nextSteps.ts     Up-next logic: plannedSteps (overdue first), urgency/labels, needsFollowUp (Applied 14+ days, nothing planned)
   lib/format.ts        fmtDate, statusClass
   lib/errors.ts        errorMessage(e): Supabase errors are plain objects, not Error; always use this for messages
@@ -114,7 +133,9 @@ src/
                        full_name, which Google overwrites each login), changePassword (verifies current pw first)
   lib/stats.ts         Pure stat helpers (summary, by status, response by platform, per week, date ranges via inRange/weeksFor,
                        funnel, bestPlatform (min 3 apps), weekStreak, busiestWeek)
-  pages/Landing.tsx    Public home page for signed-out visitors (hero, features, stats, privacy, CTA)
+  pages/Landing.tsx    Public home page for signed-out visitors: hero + Showcase (tour of the four views in a browser
+                       frame and phone), roles Ticker, Journey (a card moving Applied → Accepted), feature tiles,
+                       stats, privacy, CTA
   pages/Login.tsx      Sign in / sign up / forgot password; OAuth buttons; `?mode=signup` opens sign-up; Home link
   pages/Profile.tsx    #/profile: hero, Basic details, Password (Google-only accounts see a note), Delete account
   pages/Unsubscribe.tsx  #/unsubscribe?token=… from reminder emails; needs a click (link scanners), works signed out
@@ -126,7 +147,8 @@ src/
                        Column header tinted by status with count + "+" (onNew(status) opens the form in that status)
   components/AppTable.tsx  Table view: sortable headers (asc → desc → original order; empty values last),
                        sticky header under the navbar, count footer. Rows open on click or Enter
-  components/Badges.tsx  NextBadge + StatusPill (shared by board and table)
+  components/Badges.tsx  NextBadge + StatusPill + PostingLink (opens job_url; stops click/Enter reaching the card) +
+                       PostingBadge ("Posting closed"), shared by board, table and the follow-up list
   components/CalendarView.tsx  Month calendar by Applied On: month summary, 3 items per day then "+N more" (expands the
                        day), today highlighted (dots + agenda list on mobile)
   components/StatsView.tsx  Stats tab: range switch (30 days / 90 days / All time, by Applied On; undated rows only in
@@ -199,6 +221,7 @@ supabase/migrations/   SQL migrations, run in order
 - [x] Privacy page, sign-up privacy note, self-serve account deletion
 - [x] Profile page (basic details, change password, delete account)
 - [x] Documents per application (library of CVs/cover letters, attach to many applications)
+- [x] Posting check: open the saved job URL from cards/rows, record "still open" / "posting closed" and the date checked
 - [ ] Contacts / recruiter per application
 - [x] Password reset flow and Google sign-in (GitHub button ready once enabled in Supabase)
 - [ ] Tests (Vitest + React Testing Library)

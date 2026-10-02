@@ -91,7 +91,7 @@ export default function ImportExportDialog({ apps, onImported, onClose }: Props)
               <h3>Import from a CSV file</h3>
               <p className="muted small">
                 Works with a Notion export, Excel or Google Sheets. Needs a <strong>Role</strong> (or Name) column;
-                Company, Applied On, Platform, Priority, Status, Next Step, Next Date, Job URL and Notes are picked up
+                Company, Applied On, Platform, Priority, Status, Next Step, Next Date, Job URL, Posting Checked On, Posting Closed and Notes are picked up
                 if present.
               </p>
               <button

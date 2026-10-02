@@ -22,7 +22,7 @@ import {
 } from '@dnd-kit/core'
 import { fmtDate, statusClass } from '../lib/format'
 import { STATUSES, type Application, type Status } from '../lib/types'
-import { NextBadge } from './Badges'
+import { NextBadge, PostingBadge, PostingLink } from './Badges'
 import { DocBadge } from './DocBadge'
 import { CalendarIcon, FlagIcon, PlusIcon } from './Icons'
 
@@ -67,6 +67,7 @@ function CardBody({ app }: { app: Application }) {
         {app.company && <span className="job-company">{app.company}</span>}
       </span>
       <NextBadge app={app} />
+      <PostingBadge app={app} />
       <span className="job-meta">
         <span className="job-meta-left">
           <span className="job-date">
@@ -74,6 +75,7 @@ function CardBody({ app }: { app: Application }) {
             {fmtDate(app.applied_on)}
           </span>
           <DocBadge appId={app.id} />
+          <PostingLink app={app} />
         </span>
         {app.priority && (
           <span className={`priority priority-chip priority-${app.priority.toLowerCase()}`}>

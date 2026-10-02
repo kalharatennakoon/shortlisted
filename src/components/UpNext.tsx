@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { daysBetween, todayKey } from '../lib/dates'
 import { FOLLOW_UP_AFTER_DAYS, needsFollowUp, plannedSteps } from '../lib/nextSteps'
+import { postingSummary, postingUrl } from '../lib/posting'
 import type { Application } from '../lib/types'
+import { PostingLink } from './Badges'
 import { BellIcon, CheckIcon, ChevronIcon } from './Icons'
 
 interface Props {
@@ -126,6 +128,13 @@ export default function UpNext({ apps, onOpen, onDone, onPlanFollowUp, onNoRespo
                     {app.company && <span className="muted"> · {app.company}</span>}
                     <span className="muted small"> · applied {ago(daysBetween(app.applied_on!, today))}</span>
                   </button>
+                  {/* worth a look before chasing: has the posting been taken down? */}
+                  {postingUrl(app) && (
+                    <span className={`followup-posting${app.posting_closed ? ' closed' : ''}`}>
+                      <PostingLink app={app} label />
+                      <span className="muted small">{postingSummary(app, today)}</span>
+                    </span>
+                  )}
                   <span className="followup-actions">
                     <button className="secondary small-btn" onClick={act(app, onPlanFollowUp)} disabled={busy === app.id}>
                       Follow up today
