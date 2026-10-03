@@ -127,7 +127,7 @@ function Showcase() {
           <figure className="lp-browser">
             <div className="lp-browser-bar" aria-hidden="true">
               <i /><i /><i />
-              <span>Job Tracker</span>
+              <span>Shortlistd</span>
             </div>
             <div className="lp-screens">
               {VIEWS.map((v, i) =>
@@ -291,7 +291,7 @@ export default function Landing() {
         <div className="landing-inner landing-nav-inner">
           <Link to="/" className="brand">
             <Logo size={30} />
-            <span>Job Tracker</span>
+            <span>Shortlistd</span>
           </Link>
           <span className="spacer" />
           <Link to="/login" className="btn ghost">Sign in</Link>

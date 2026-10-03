@@ -40,12 +40,13 @@ export function eventFor(app: CalendarApp, appLink?: string): CalendarEvent | nu
     posting ? `Job posting: ${posting}` : null,
     contact ? `Contact: ${contact}` : null,
     '',
-    appLink ? `From Job Tracker: ${appLink}` : 'From Job Tracker',
+    appLink ? `From Shortlistd: ${appLink}` : 'From Shortlistd',
   ]
     .filter((line) => line !== null)
     .join('\n')
   return {
     // a new date is a new event (a second interview shouldn't replace the first in the calendar); a new time updates it
+    // the '@job-tracker' suffix predates the Shortlistd name; keep it, or events people already added would duplicate
     uid: `${app.id ?? 'new'}-${app.next_date}-${app.next_step.toLowerCase().replace(/\s+/g, '-')}@job-tracker`,
     title: `${app.next_step === 'Other' ? 'Next step' : app.next_step}: ${what}`,
     date: app.next_date,
@@ -132,7 +133,7 @@ export function icsFile(ev: CalendarEvent, now = new Date()): string {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Job Tracker//Next steps//EN',
+    'PRODID:-//Shortlistd//Next steps//EN',
     'CALSCALE:GREGORIAN',
     'BEGIN:VEVENT',
     `UID:${ev.uid}`,

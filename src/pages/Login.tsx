@@ -105,7 +105,7 @@ export default function Login() {
       <form className="card auth-card" onSubmit={onSubmit}>
         <div className="auth-brand">
           <Logo size={40} />
-          <h1>Job Tracker</h1>
+          <h1>Shortlistd</h1>
           <p className="muted">{title}</p>
         </div>
 

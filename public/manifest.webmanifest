@@ -1,6 +1,6 @@
 {
-  "name": "Job Tracker",
-  "short_name": "Job Tracker",
+  "name": "Shortlistd",
+  "short_name": "Shortlistd",
   "description": "Track every job application in one place.",
   "start_url": "./",
   "scope": "./",
