@@ -22,7 +22,7 @@ const env = (k: string) => {
 
 const SUPABASE_URL = env('SUPABASE_URL')
 const admin = createClient(SUPABASE_URL, env('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false } })
-const APP_URL = (Deno.env.get('APP_URL') ?? 'https://kalharatennakoon.github.io/job-tracker/').replace(/\/?$/, '/')
+const APP_URL = (Deno.env.get('APP_URL') ?? 'https://kalharatennakoon.github.io/shortlistd/').replace(/\/?$/, '/')
 const FUNCTION_URL = `${SUPABASE_URL}/functions/v1/reminders`
 
 const cors = {

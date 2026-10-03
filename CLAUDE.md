@@ -6,9 +6,11 @@ Users sign up, log in, and track their own applications on a status board and in
 ## Name
 The app is called **Shortlistd** (one word, no "e"; rebranded from "Job Tracker" in October 2026). Use it for anything a
 person reads: the UI, page title and link-preview tags, manifest, reminder emails, calendar events, docs.
+The GitHub repo is `kalharatennakoon/shortlistd` (renamed from `job-tracker`), so the site is at
+`https://kalharatennakoon.github.io/shortlistd/`. That address is repeated in Supabase's Site URL / Redirect URLs, the
+reminders function's `APP_URL` secret and the canonical + Open Graph URLs in `index.html`; change them together.
+GitHub Pages does not redirect the old `/job-tracker/` address.
 These still carry the old name on purpose; don't rename them without Kalhara asking:
-- The GitHub repo and so the Pages URL (`kalharatennakoon.github.io/job-tracker/`), which Supabase's Site URL / Redirect
-  URLs, the `APP_URL` secret, the canonical + Open Graph URLs and every shared link depend on.
 - The contact mailbox `jobtracker.app.lk@gmail.com` (also the reminders' SMTP account).
 - The pg_cron job `job-tracker-reminders` (already scheduled) and the calendar event UID suffix `@job-tracker`
   (changing it would duplicate events people have already added).
@@ -29,13 +31,13 @@ Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
   doesn't collide with HashRouter. The library exchanges the code and strips it from the URL.
 - PKCE links (reset, confirm) only work in the browser that requested them; `lib/auth.tsx` shows a friendly error otherwise.
 - Redirects go to `appUrl()` (origin + path). Supabase must allow it: Site URL = the Pages URL; Redirect URLs =
-  `https://kalharatennakoon.github.io/job-tracker/**` and `http://localhost:5173/**`.
+  `https://kalharatennakoon.github.io/shortlistd/**` and `http://localhost:5173/**`.
 - OAuth buttons render only for providers enabled in Supabase (read from the public `/auth/v1/settings`).
   Google is set up; GitHub just needs enabling in Supabase.
 - Sign-up confirmation: `emailRedirectTo` is `appUrl()?confirmed=1`. `lib/auth.tsx` sees the marker once at load,
   lets the library exchange the code, signs out locally, cleans the URL and shows "Your email is confirmed. Please
   sign in." Works even if the link is opened in another browser (the email is confirmed server-side before redirect).
-  Supabase Redirect URLs must include `https://kalharatennakoon.github.io/job-tracker/**` or the marker is dropped.
+  Supabase Redirect URLs must include `https://kalharatennakoon.github.io/shortlistd/**` or the marker is dropped.
 - Keep side effects (URL cleanup) out of React state updaters; StrictMode runs them twice in dev.
 - The library can clear the stored session without an event (failed background refresh). AuthProvider re-checks on
   tab focus/visibility and listens for `reportSessionLost()` (lib/sessionLost.ts); either signs out locally and shows
