@@ -6,6 +6,8 @@ export async function listApplications(): Promise<Application[]> {
     .from('applications')
     .select('*')
     .order('applied_on', { ascending: false, nullsFirst: false })
+    // tie-breaker: without it, applications with the same Applied On date come back in a different order on each load
+    .order('created_at', { ascending: false })
   if (error) throw error
   return data as Application[]
 }

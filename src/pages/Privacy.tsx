@@ -99,7 +99,7 @@ export default function Privacy() {
         <h2>Questions</h2>
         <p>
           Something unclear, or want your data removed? Email{' '}
-          <a href={`mailto:${CONTACT_EMAIL}?subject=Job%20Tracker`}>{CONTACT_EMAIL}</a>.
+          <a href={`mailto:${CONTACT_EMAIL}?subject=Shortlistd`}>{CONTACT_EMAIL}</a>.
         </p>
 
         <footer className="doc-foot">

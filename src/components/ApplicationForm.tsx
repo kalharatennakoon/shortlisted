@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { errorMessage } from '../lib/errors'
 import { ExternalIcon, MailIcon, XIcon } from './Icons'
 import AttachedDocuments from './AttachedDocuments'
@@ -55,6 +55,17 @@ export default function ApplicationForm({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [emailOpen, setEmailOpen] = useState(false)
+
+  // Escape closes the form, like the other dialogs. Not while saving, and not while the email draft is open on top
+  // (it closes itself). The time picker stops its own Escape before it gets here.
+  useEffect(() => {
+    if (busy || emailOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.defaultPrevented) onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [busy, emailOpen, onClose])
 
   const set = <K extends keyof ApplicationInput>(key: K, value: ApplicationInput[K]) =>
     setForm((f) => ({ ...f, [key]: value }))

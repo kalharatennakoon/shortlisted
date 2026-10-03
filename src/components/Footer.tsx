@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth'
 import { APP_VERSION, CONTACT_EMAIL, OWNER_NAME } from '../lib/config'
 import { Logo, MailIcon } from './Icons'
 
-const mailto = `mailto:${CONTACT_EMAIL}?subject=Job%20Tracker`
+const mailto = `mailto:${CONTACT_EMAIL}?subject=Shortlistd`
 
 /**
  * Site footer. The full version (landing, privacy) has link columns; `compact` is a slim bar for
