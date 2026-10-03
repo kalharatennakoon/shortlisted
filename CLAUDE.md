@@ -1,7 +1,19 @@
-# Job Tracker — project guide for Claude
+# Shortlistd — project guide for Claude
 
 A multi-user job application tracker, modeled on Kalhara's Notion page **Jobs → Application Tracker**.
 Users sign up, log in, and track their own applications on a status board and in a table.
+
+## Name
+The app is called **Shortlistd** (one word, no "e"; rebranded from "Job Tracker" in October 2026). Use it for anything a
+person reads: the UI, page title and link-preview tags, manifest, reminder emails, calendar events, docs.
+These still carry the old name on purpose; don't rename them without Kalhara asking:
+- The GitHub repo and so the Pages URL (`kalharatennakoon.github.io/job-tracker/`), which Supabase's Site URL / Redirect
+  URLs, the `APP_URL` secret, the canonical + Open Graph URLs and every shared link depend on.
+- The contact mailbox `jobtracker.app.lk@gmail.com` (also the reminders' SMTP account).
+- The pg_cron job `job-tracker-reminders` (already scheduled) and the calendar event UID suffix `@job-tracker`
+  (changing it would duplicate events people have already added).
+- Applied migrations (the comment in the first one).
+The wordmark is baked into `public/og-image.png` and the navbar of the eight view screenshots in `public/landing/`.
 
 ## Stack
 - **Frontend:** Vite + React 19 + TypeScript, plain CSS (`src/index.css`): light-only, white background, Inter font, design tokens at the top

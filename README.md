@@ -1,6 +1,7 @@
-# Job Tracker
+# Shortlistd
 
-Track your job applications on a status board, like a Notion tracker but with your own account.
+Shortlistd (formerly Job Tracker) tracks your job applications on a status board, like a Notion tracker but
+with your own account. The repository and the site URL still use the old `job-tracker` name.
 Built with React + Vite, Supabase (auth + Postgres) and hosted on GitHub Pages.
 
 ## Setup

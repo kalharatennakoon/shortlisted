@@ -194,7 +194,7 @@ async function send(
 ) {
   const unsubscribePage = `${APP_URL}#/unsubscribe?token=${token}`
   await mailer.send({
-    from: `Job Tracker <${env('SMTP_USER')}>`,
+    from: `Shortlistd <${env('SMTP_USER')}>`,
     to,
     subject: (test ? '[Test] ' : '') + subjectFor(digest),
     // Pre-encoded as base64: denomailer's own quoted-printable encoder leaves stray "=20"s in some mail apps

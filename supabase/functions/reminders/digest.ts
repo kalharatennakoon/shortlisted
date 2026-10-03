@@ -84,9 +84,9 @@ export function subjectFor(d: Digest): string {
   if (d.today.length) bits.push(`${d.today.length} today`)
   if (d.overdue.length) bits.push(`${d.overdue.length} overdue`)
   if (d.tomorrow.length) bits.push(`${d.tomorrow.length} tomorrow`)
-  if (bits.length) return `Job Tracker: ${bits.join(', ')}`
-  if (d.followUps.length) return `Job Tracker: ${d.followUps.length} application${d.followUps.length === 1 ? '' : 's'} to follow up`
-  return 'Job Tracker: your reminders'
+  if (bits.length) return `Shortlistd: ${bits.join(', ')}`
+  if (d.followUps.length) return `Shortlistd: ${d.followUps.length} application${d.followUps.length === 1 ? '' : 's'} to follow up`
+  return 'Shortlistd: your reminders'
 }
 
 interface Section { heading: string; color: string; items: { line: string; note: string }[] }
@@ -123,7 +123,7 @@ export function renderText(d: Digest, today: string, appUrl: string, unsubscribe
     for (const i of s.items) out.push(`- ${i.line}${i.note ? ` (${i.note})` : ''}`)
     out.push('')
   }
-  out.push(`Open Job Tracker: ${appUrl}`, '', `Stop these emails: ${unsubscribeUrl}`)
+  out.push(`Open Shortlistd: ${appUrl}`, '', `Stop these emails: ${unsubscribeUrl}`)
   return out.join('\n')
 }
 
@@ -143,7 +143,7 @@ export function renderHtml(d: Digest, today: string, appUrl: string, unsubscribe
 <tr><td style="padding:24px 24px 8px">
   <table role="presentation" cellpadding="0" cellspacing="0"><tr>
     <td style="width:32px;height:32px"><img src="${esc(appUrl)}icon-192.png" width="32" height="32" alt="" style="display:block;border-radius:8px"></td>
-    <td style="padding-left:10px;font:700 17px/1 Inter,Segoe UI,Arial,sans-serif;color:#111827">Job Tracker</td>
+    <td style="padding-left:10px;font:700 17px/1 Inter,Segoe UI,Arial,sans-serif;color:#111827">Shortlistd</td>
   </tr></table>
 </td></tr>
 <tr><td style="padding:0 24px">
@@ -151,11 +151,11 @@ export function renderHtml(d: Digest, today: string, appUrl: string, unsubscribe
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${body}</table>
 </td></tr>
 <tr><td style="padding:14px 24px 24px">
-  <a href="${esc(appUrl)}" style="display:inline-block;padding:10px 16px;border-radius:8px;background:#2563eb;color:#ffffff;text-decoration:none;font:600 14px/1 Inter,Segoe UI,Arial,sans-serif">Open Job Tracker</a>
+  <a href="${esc(appUrl)}" style="display:inline-block;padding:10px 16px;border-radius:8px;background:#2563eb;color:#ffffff;text-decoration:none;font:600 14px/1 Inter,Segoe UI,Arial,sans-serif">Open Shortlistd</a>
 </td></tr>
 </table>
 <p style="max-width:560px;margin:14px auto 0;font:12px/1.5 Inter,Segoe UI,Arial,sans-serif;color:#6b7280">
-  You're getting this because you turned on email reminders in Job Tracker.
+  You're getting this because you turned on email reminders in Shortlistd.
   <a href="${esc(unsubscribeUrl)}" style="color:#6b7280">Stop these emails</a> or change the time in your profile.
 </p>
 </td></tr></table></body></html>`

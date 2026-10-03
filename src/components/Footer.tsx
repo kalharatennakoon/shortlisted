@@ -16,7 +16,7 @@ export default function Footer({ compact = false }: { compact?: boolean }) {
   const bottom = (
     <div className="footer-bottom">
       <p>
-        <span>© {year} Job Tracker</span>
+        <span>© {year} Shortlistd</span>
         <span>Built by {OWNER_NAME} in Sri&nbsp;Lanka</span>
       </p>
       <span className="version" title="App version">v{APP_VERSION}</span>
@@ -29,7 +29,7 @@ export default function Footer({ compact = false }: { compact?: boolean }) {
         <div className="footer-inner footer-compact">
           <Link to="/" className="footer-brand">
             <Logo size={22} />
-            <span>Job Tracker</span>
+            <span>Shortlistd</span>
           </Link>
           <nav className="footer-inline" aria-label="Footer">
             <Link to="/privacy">Privacy</Link>
@@ -48,7 +48,7 @@ export default function Footer({ compact = false }: { compact?: boolean }) {
           <div className="footer-about">
             <Link to="/" className="footer-brand">
               <Logo size={28} />
-              <span>Job Tracker</span>
+              <span>Shortlistd</span>
             </Link>
             <p>A simple, private board for your job hunt. Track every application, never miss a follow-up.</p>
             <ul className="footer-tags" aria-label="Highlights">

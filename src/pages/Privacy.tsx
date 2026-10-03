@@ -19,7 +19,7 @@ export default function Privacy() {
         </header>
 
         <p>
-          Job Tracker is a free, personal project by {OWNER_NAME}. This page explains, in plain words, what happens to
+          Shortlistd is a free, personal project by {OWNER_NAME}. This page explains, in plain words, what happens to
           your data.
         </p>
 
@@ -76,7 +76,7 @@ export default function Privacy() {
         <h2>Email drafts and your calendar</h2>
         <p>
           <strong>Draft email</strong> and <strong>Add to calendar</strong> open your own mail app, Gmail, Google
-          Calendar or a calendar file, with the role, company and date filled in. Job Tracker doesn't send the email
+          Calendar or a calendar file, with the role, company and date filled in. Shortlistd doesn't send the email
           or add the event itself, and it never gets access to your mailbox or calendar. Nothing leaves the app until
           you press one of those buttons.
         </p>
