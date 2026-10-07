@@ -152,13 +152,16 @@ interface Recipient {
   last_sent_on: string | null
 }
 
+const APP_COLUMNS = 'id, name, company, status, applied_on, next_step, next_date'
+
 async function appsOf(userId: string): Promise<AppRow[]> {
-  const { data, error } = await admin
-    .from('applications')
-    .select('id, name, company, status, applied_on, next_step, next_date')
-    .eq('user_id', userId)
-  if (error) throw error
-  return data as AppRow[]
+  const load = (columns: string) => admin.from('applications').select(columns).eq('user_id', userId)
+  let res = await load(`${APP_COLUMNS}, next_time`)
+  // 42703 = unknown column: a database that hasn't had migration 20261002120000 yet. Send the digest without times
+  // rather than no digest at all.
+  if (res.error?.code === '42703') res = await load(APP_COLUMNS)
+  if (res.error) throw res.error
+  return res.data as unknown as AppRow[]
 }
 
 // Gmail over implicit TLS on 465 (Supabase Edge Functions block outbound 25 and 587)

@@ -135,7 +135,23 @@ Email drafts and add to calendar (migration `20261002120000_next_time_contact.sq
 - The time is picked with `components/TimePicker.tsx`, not `<input type="time">` (Kalhara found the browser pop-up dated):
   a button styled like the inputs plus a panel with an hour grid, 5-minute steps and AM/PM. It follows the device's
   12/24-hour setting (24 hours: a 0-23 grid, no AM/PM), saves on every tap, and closes on Done, Escape or an outside click.
-- Reminder emails don't show the time yet: `functions/reminders` would need `next_time` in its select and a redeploy.
+- Reminder emails show the time on Today and Tomorrow steps ("2:30 PM · Interview: …"; overdue steps don't, as in the
+  app). `digest.ts` has its own `timeKey`/`fmtTime`: always the 12-hour clock with AM/PM, because an email can't follow
+  the reader's device. `index.ts` selects `next_time` and retries without it on Postgres error 42703 (column missing).
+  The function has to be **redeployed** after any change to those two files (see its README).
+
+Check my CV (hand-off to CV Analyzer LK, Kalhara's other app at `https://cv-analyzer-lk.vercel.app/`; no schema change):
+- The chip at the foot of the form's Documents section opens `components/CvCheckDialog.tsx`: which CV (attached ones
+  first, then the rest of the library; only kind CV, PDF/DOCX/TXT, up to 4 MB, which are CV Analyzer LK's limits), the
+  role and the job link. "Open" makes a signed link to the CV that lasts `CV_LINK_SECONDS` (5 minutes) and opens the
+  other site in a new tab. Role, link and CV come from the form as it is, saved or not.
+- Everything goes in the URL **fragment** (`#from=shortlistd&position=…&jobUrl=…&cv=…&cvName=…`, built by
+  `lib/cvCheck.ts`), never the query string: fragments aren't sent to servers, so the CV link stays out of Vercel's
+  logs. The receiving end is `src/lib/handoff.ts` in the `cv-analyzer-lk` repo, which only accepts a CV link to a
+  Supabase Storage signed URL for the `documents` bucket; change the parameter names in both repos together.
+- The new tab is opened inside the click (pop-up blockers), its `opener` is cleared before it is pointed at the other
+  site, and a blocked tab falls back to a plain link. CV Analyzer LK only fills its form in; the person presses Analyse.
+- This is the one place a document leaves the app, so the privacy page has a "Checking your CV" section. Keep it accurate.
 
 Notion status groups: To-do = Applied, Interviewed · In progress = Offered · Complete = Accepted, Rejected, No Response.
 Notion views: a **board grouped by Status** (shows Name, Company, Applied On) and a **calendar by Applied On**.
@@ -156,6 +172,7 @@ src/
   lib/documents.ts     Document library: upload (validate, upload file, insert row, clean up on failure), list, links,
                        setApplicationDocuments(diff), open/download via signed URL, delete, guessKind(file name)
   lib/docCounts.ts     React context: application id -> attached document count (for board/table badges)
+  lib/cvCheck.ts       Pure: CV Analyzer LK hand-off (cvChoices, cvProblem, unreadableCvs, handoffUrl) + its address and limits
   lib/reminders.ts     Reminder settings (get/save), sendTestEmail + unsubscribe via supabase.functions.invoke('reminders')
   lib/account.ts       deleteMyAccount(): delete Storage files, then rpc; one-time 'account deleted' notice
   lib/config.ts        Owner name, contact email (jobtracker.app.lk@gmail.com), APP_VERSION, privacy date
@@ -205,7 +222,9 @@ src/
                        checkbox, Open in Gmail / mail app / Copy. Portalled, `.modal-top` (opens over the form), not a <form>
   components/AddToCalendar.tsx  CalendarButtons (Google Calendar link + .ics download; `chips` for the form) and the
                        default export CalendarDialog used from Up next
-  components/AttachedDocuments.tsx  Documents section (`.form-section`) in the form: attached list, pick from library, upload new
+  components/AttachedDocuments.tsx  Documents section (`.form-section`) in the form: attached list, pick from library, upload new;
+                       `children` go at its foot (the "Check my CV" chip)
+  components/CvCheckDialog.tsx  "Check your CV": CV picker, role, job link, Open CV Analyzer LK. Portalled, `.modal-top`, not a <form>
   components/DocumentUpload.tsx  Upload button + inline confirm (name, kind). Not a <form>: it sits inside the app form
   components/DocBadge.tsx  Paperclip + count on board cards and table rows
   pages/Documents.tsx  #/documents library: upload, open, download, rename/change type, delete (inline confirm),
@@ -274,7 +293,9 @@ supabase/migrations/   SQL migrations, run in order
 - [x] Posting check: open the saved job URL from cards/rows, record "still open" / "posting closed" and the date checked
 - [x] Follow-up email templates (follow-up, thank-you, check-in) opened in the user's own mail, plus a contact email
 - [x] Add to calendar for next steps (Google Calendar link, .ics file), with an optional time
-- [ ] Private calendar feed to subscribe to (needs an Edge Function), time in reminder emails
+- [x] Time in reminder emails
+- [x] "Check my CV" button that hands the CV, role and job link to CV Analyzer LK
+- [ ] Private calendar feed to subscribe to (needs an Edge Function)
 - [ ] Contacts / recruiter per application (name, LinkedIn, last contacted; only the email exists so far)
 - [x] Password reset flow and Google sign-in (GitHub button ready once enabled in Supabase)
 - [ ] Tests (Vitest + React Testing Library)

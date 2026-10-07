@@ -3,6 +3,7 @@ import Footer from '../components/Footer'
 import { Logo } from '../components/Icons'
 import { useAuth } from '../lib/auth'
 import { CONTACT_EMAIL, OWNER_NAME, PRIVACY_UPDATED } from '../lib/config'
+import { CV_ANALYZER_NAME, CV_ANALYZER_URL, CV_LINK_SECONDS } from '../lib/cvCheck'
 
 export default function Privacy() {
   const { session } = useAuth()
@@ -79,6 +80,16 @@ export default function Privacy() {
           Calendar or a calendar file, with the role, company and date filled in. Shortlistd doesn't send the email
           or add the event itself, and it never gets access to your mailbox or calendar. Nothing leaves the app until
           you press one of those buttons.
+        </p>
+
+        <h2>Checking your CV</h2>
+        <p>
+          <strong>Check my CV</strong> opens{' '}
+          <a href={CV_ANALYZER_URL} target="_blank" rel="noreferrer">{CV_ANALYZER_NAME}</a>, a separate free tool by
+          the same developer, in a new tab. Only when you press that button, it is given the role, the job link and
+          the CV you chose, through a private link that stops working after {CV_LINK_SECONDS / 60} minutes. Once you
+          press Analyse there, {CV_ANALYZER_NAME} sends the text of your CV to an AI service to review it;{' '}
+          {CV_ANALYZER_NAME} itself does not store your CV. Nothing is shared if you never use the button.
         </p>
 
         <h2>Taking your data with you</h2>

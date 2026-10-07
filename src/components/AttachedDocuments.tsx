@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { errorMessage } from '../lib/errors'
 import { fmtSize, MAX_DOCUMENTS, openDocument } from '../lib/documents'
 import type { JobDocument } from '../lib/types'
@@ -14,11 +14,14 @@ export default function AttachedDocuments({
   selected,
   onChange,
   onUploaded,
+  children,
 }: {
   docs: JobDocument[]
   selected: string[]
   onChange: (ids: string[]) => void
   onUploaded: (doc: JobDocument) => void
+  /** Shown at the foot of the section (the form puts "Check my CV" here) */
+  children?: ReactNode
 }) {
   const [picking, setPicking] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -116,6 +119,7 @@ export default function AttachedDocuments({
         <p className="muted small">You've reached {MAX_DOCUMENTS} documents. Delete one on the Documents page to upload more.</p>
       )}
       {error && <p className="error">{error}</p>}
+      {children}
     </section>
   )
 }
