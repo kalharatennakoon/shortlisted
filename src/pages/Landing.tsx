@@ -14,6 +14,7 @@ import {
   PauseIcon,
   PlayIcon,
   ShieldIcon,
+  SparkleIcon,
   TableIcon,
   UploadIcon,
 } from '../components/Icons'
@@ -273,7 +274,7 @@ function Tile({ icon, title, text, children, className = '', isNew = false }: { 
       <div className="lp-tile-text">
         <span className="lp-tile-top">
           <span className="lp-tile-icon">{icon}</span>
-          {isNew && <span className="lp-new">New in v2</span>}
+          {isNew && <span className="lp-new">New in v3</span>}
         </span>
         <h3>{title}</h3>
         <p>{text}</p>
@@ -359,7 +360,7 @@ export default function Landing() {
                 className="wide"
                 icon={<BellIcon size={20} />}
                 title="Never miss a next step"
-                text="Add interviews, assessments and follow-ups with a date. “Up next” shows what is due, and an optional morning email reminds you."
+                text="Add interviews, assessments and follow-ups with a date. “Up next” shows what is due, and an optional morning email reminds you, with the time of each one."
               >
                 <ul className="lp-mini upnext-list" aria-hidden="true">
                   {UP_NEXT.map((u) => (
@@ -398,7 +399,6 @@ export default function Landing() {
                 </ul>
               </Tile>
               <Tile
-                isNew
                 icon={<CalendarPlusIcon size={20} />}
                 title="Interviews in your calendar"
                 text="Give a next step a time, then add it to Google Calendar, Apple Calendar or Outlook in two taps."
@@ -419,6 +419,37 @@ export default function Landing() {
               </Tile>
               <Tile
                 isNew
+                className="wide"
+                icon={<SparkleIcon size={20} />}
+                title="Check your CV against the job"
+                text="Send the CV you attached, the role and the job link to CV Analyzer LK, a free companion tool, in a couple of taps. It shows how well your CV matches the job and what to improve before you apply."
+              >
+                <div className="lp-mini lp-mail lp-cv" aria-hidden="true">
+                  <div className="lp-cv-head">
+                    <span className="cal-event-icon"><SparkleIcon size={18} /></span>
+                    <span>
+                      <strong>CV Analyzer LK</strong>
+                      <span className="muted small block">Compares your CV with the job</span>
+                    </span>
+                  </div>
+                  <div className="lp-mail-row">
+                    <small>CV</small>
+                    <span>Nursing CV</span>
+                  </div>
+                  <div className="lp-mail-row">
+                    <small>Role</small>
+                    <span>Staff Nurse</span>
+                  </div>
+                  <div className="lp-mail-row">
+                    <small>Job posting</small>
+                    <span>careers.lakemont.example</span>
+                  </div>
+                  <div className="lp-mail-foot">
+                    <span className="lp-fake-btn primary">Open CV Analyzer LK</span>
+                  </div>
+                </div>
+              </Tile>
+              <Tile
                 className="wide"
                 icon={<MailIcon size={20} />}
                 title="Follow up without a blank page"
@@ -454,11 +485,13 @@ export default function Landing() {
                 text="Import applications from a Notion, Excel or Google Sheets CSV, and export them whenever you like."
               />
               <Tile
+                className="half"
                 icon={<CalendarIcon size={20} />}
                 title="See your month"
                 text="Applications and next steps on a calendar, so a busy week does not catch you out."
               />
               <Tile
+                className="half"
                 icon={<PhoneIcon />}
                 title="Works on your phone"
                 text="Use it in any browser, or add it to your home screen like an app."

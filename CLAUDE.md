@@ -57,8 +57,10 @@ Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
     `og-image.png` still has its own baked-in device + screenshot.
   - Sample data in screenshots and on the page is fictional and deliberately spans fields (nursing, teaching, finance,
     engineering, hospitality, design, IT). Keep it that way: Kalhara doesn't want it to look IT-only.
-- Feature tiles: seven on a 6-column grid (wide 4 + 2, 2 + wide 4, 2 + 2 + 2). The calendar and email tiles carry a
-  "New in v2" tag (`isNew`) and small static previews (`.lp-calmock`, `.lp-mail`); drop the tag at the next version.
+- Feature tiles: eight on a 6-column grid (wide 4 + 2, 2 + wide 4, wide 4 + 2, then two `half` tiles 3 + 3). The
+  "Check your CV" tile carries the "New in v3" tag (`isNew`; the label is in `Tile`) and a static preview (`.lp-cv`,
+  built on `.lp-mail`); the calendar and email tiles keep their previews (`.lp-calmock`, `.lp-mail`). At the next
+  version, move the tag to what is new then and change the label. `APP_VERSION` in `lib/config.ts` is 3.0.
 - Landing classes are prefixed `lp-`. Motion is deliberate, not scattered: one page-load rise in the hero, the view tour
   (tab progress line is the timer: its `animationend` shows the next view; pauses on hover/off-screen, stops on click,
   Pause/Play button), the roles ticker, and the application card moving through the stages. All of it stops under

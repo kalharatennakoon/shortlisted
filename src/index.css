@@ -258,6 +258,7 @@ a.btn.btn-light:hover { background: #eef2ff; }
 .lp-tile { grid-column: span 2; display: flex; flex-direction: column; gap: 20px; padding: 26px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; }
 .lp-tile.wide { grid-column: span 4; flex-direction: row; align-items: flex-start; gap: 32px; }
 .lp-tile.wide .lp-tile-text { flex: 0.9; }
+.lp-tile.half { grid-column: span 3; }
 .lp-tile-text h3 { font-size: 17px; font-weight: 650; letter-spacing: -0.01em; margin: 14px 0 6px; }
 .lp-tile-text p { font-size: 14.5px; line-height: 1.55; color: var(--text-2); }
 .lp-tile-icon { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; color: #4f46e5; background: linear-gradient(135deg, #eff4ff, #f3efff); border: 1px solid #e0e7ff; }
@@ -283,6 +284,10 @@ a.btn.btn-light:hover { background: #eef2ff; }
 .lp-mail-foot { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; padding: 0 14px 14px; }
 .lp-fake-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-strong); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
 .lp-fake-btn.primary { background: var(--accent); border-color: transparent; color: #fff; }
+.lp-cv-head { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--canvas); border-bottom: 1px solid var(--border); }
+.lp-cv-head strong { display: block; font-size: 14px; }
+.lp-cv .lp-mail-row small { width: 78px; }
+.lp-cv .lp-mail-foot { padding-top: 12px; }
 .lp-docs li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; min-width: 0; }
 .lp-docs svg { color: var(--accent); flex: none; }
 .lp-docs li > span:first-of-type { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.35; }
@@ -312,7 +317,7 @@ a.btn.btn-light:hover { background: #eef2ff; }
   .lp-hero-head { grid-template-columns: minmax(0, 1fr); align-items: start; }
   .lp-tile { grid-column: span 3; }
   .lp-tile.wide { grid-column: span 6; }
-  /* seven tiles: the last one would sit alone in a half-width row */
+  /* five half-width tiles between the wide ones: the last one would sit alone in a half-width row */
   .lp-tile:last-child { grid-column: span 6; }
   .lp-split { grid-template-columns: minmax(0, 1fr); align-items: start; }
 }
@@ -330,7 +335,7 @@ a.btn.btn-light:hover { background: #eef2ff; }
   .lp-section-head p { font-size: 16px; }
   .lp-fields { padding-bottom: 48px; }
   .lp-ticker li { padding: 8px 14px; font-size: 14px; }
-  .lp-tile, .lp-tile.wide { grid-column: span 6; }
+  .lp-tile, .lp-tile.wide, .lp-tile.half { grid-column: span 6; }
   .lp-tile.wide { flex-direction: column; align-items: stretch; gap: 20px; }
   .lp-tile.wide .lp-mail { flex: none; }
   .lp-tile { padding: 22px 20px; }
