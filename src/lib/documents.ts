@@ -134,6 +134,16 @@ export async function openDocument(doc: JobDocument, download = false): Promise<
   }
 }
 
+/**
+ * A link to the file that works for `seconds`, for anyone who has it. Only for handing one document to something
+ * the person asked for by name (the CV check); everything else opens documents with openDocument().
+ */
+export async function signedDocumentUrl(doc: JobDocument, seconds: number): Promise<string> {
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(doc.storage_path, seconds)
+  if (error) throw error
+  return data.signedUrl
+}
+
 /** Makes the application's links match `documentIds` (adds and removes as needed). */
 export async function setApplicationDocuments(applicationId: string, current: string[], next: string[]): Promise<void> {
   const add = next.filter((id) => !current.includes(id))

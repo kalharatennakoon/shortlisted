@@ -9,6 +9,8 @@ export interface AppRow {
   applied_on: string | null
   next_step: string | null
   next_date: string | null
+  /** Time of the next step, 'HH:MM:SS' from Postgres. Null or absent (a database without the column yet) = all day */
+  next_time?: string | null
 }
 
 export interface Digest {
@@ -46,6 +48,25 @@ export function daysBetween(a: string, b: string): number {
   return Math.round((u(b) - u(a)) / 86_400_000)
 }
 
+/** 'HH:MM' from Postgres' 'HH:MM:SS' (or 'HH:MM'); null if it isn't a time. Same rule as timeKey() in src/lib/dates.ts */
+export function timeKey(t: string | null | undefined): string | null {
+  const m = t?.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/)
+  if (!m) return null
+  const h = Number(m[1])
+  return h < 24 && Number(m[2]) < 60 ? `${String(h).padStart(2, '0')}:${m[2]}` : null
+}
+
+/**
+ * "2:30 PM", or '' when there is no time. The app follows the device's 12/24-hour setting; an email can't know it,
+ * so it always uses the 12-hour clock with AM/PM, which nobody can misread.
+ */
+export function fmtTime(t: string | null | undefined): string {
+  const key = timeKey(t)
+  if (!key) return ''
+  const [h, m] = key.split(':').map(Number)
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`
+}
+
 /** Is this user due a digest on this run? Once per local day, on the first run at or after their hour. */
 export function isDue(now: Date, r: { time_zone: string; send_hour: number; last_sent_on: string | null }): boolean {
   const { date, hour } = localParts(now, r.time_zone)
@@ -54,9 +75,11 @@ export function isDue(now: Date, r: { time_zone: string; send_hour: number; last
 
 export function buildDigest(apps: AppRow[], today: string, includeFollowUps: boolean): Digest {
   const tomorrow = addDays(today, 1)
+  // Soonest first; within a day, all-day steps and then by time (as plannedSteps() does in the app)
+  const key = (a: AppRow) => `${a.next_date}T${timeKey(a.next_time) ?? ''}`
   const planned = apps
     .filter((a) => a.next_step && a.next_date)
-    .sort((x, y) => (x.next_date! < y.next_date! ? -1 : x.next_date! > y.next_date! ? 1 : 0))
+    .sort((x, y) => (key(x) < key(y) ? -1 : key(x) > key(y) ? 1 : 0))
   const cutoff = addDays(today, -FOLLOW_UP_AFTER_DAYS)
   return {
     overdue: planned.filter((a) => a.next_date! < today),
@@ -89,25 +112,29 @@ export function subjectFor(d: Digest): string {
   return 'Shortlistd: your reminders'
 }
 
-interface Section { heading: string; color: string; items: { line: string; note: string }[] }
+/** `time` ("2:30 PM") leads the line when the step has one; '' for all-day steps and everything else */
+interface Item { time: string; line: string; note: string }
+interface Section { heading: string; color: string; items: Item[] }
 
 function sections(d: Digest, today: string): Section[] {
   const step = (a: AppRow) => a.next_step ?? 'Next step'
+  const timed = (a: AppRow): Item => ({ time: fmtTime(a.next_time), line: `${step(a)}: ${title(a)}`, note: '' })
   const s: Section[] = []
   if (d.overdue.length) s.push({
     heading: 'Overdue', color: '#b91c1c',
     items: d.overdue.map((a) => {
       const n = daysBetween(a.next_date!, today)
-      return { line: `${step(a)}: ${title(a)}`, note: `${n} day${n === 1 ? '' : 's'} overdue` }
+      // No time here, as in the app: once a step is overdue, how late it is matters more than the hour
+      return { time: '', line: `${step(a)}: ${title(a)}`, note: `${n} day${n === 1 ? '' : 's'} overdue` }
     }),
   })
-  if (d.today.length) s.push({ heading: 'Today', color: '#1d4ed8', items: d.today.map((a) => ({ line: `${step(a)}: ${title(a)}`, note: '' })) })
-  if (d.tomorrow.length) s.push({ heading: 'Tomorrow', color: '#374151', items: d.tomorrow.map((a) => ({ line: `${step(a)}: ${title(a)}`, note: '' })) })
+  if (d.today.length) s.push({ heading: 'Today', color: '#1d4ed8', items: d.today.map(timed) })
+  if (d.tomorrow.length) s.push({ heading: 'Tomorrow', color: '#374151', items: d.tomorrow.map(timed) })
   if (d.followUps.length) s.push({
     heading: 'Worth a follow-up', color: '#a16207',
     items: d.followUps.map((a) => {
       const n = daysBetween(a.applied_on!, today)
-      return { line: title(a), note: `applied ${n} days ago, no reply yet` }
+      return { time: '', line: title(a), note: `applied ${n} days ago, no reply yet` }
     }),
   })
   return s
@@ -120,7 +147,7 @@ export function renderText(d: Digest, today: string, appUrl: string, unsubscribe
   if (!secs.length) out.push('Nothing is due right now.')
   for (const s of secs) {
     out.push(s.heading.toUpperCase())
-    for (const i of s.items) out.push(`- ${i.line}${i.note ? ` (${i.note})` : ''}`)
+    for (const i of s.items) out.push(`- ${i.time ? `${i.time} · ` : ''}${i.line}${i.note ? ` (${i.note})` : ''}`)
     out.push('')
   }
   out.push(`Open Shortlistd: ${appUrl}`, '', `Stop these emails: ${unsubscribeUrl}`)
@@ -134,7 +161,7 @@ export function renderHtml(d: Digest, today: string, appUrl: string, unsubscribe
       <tr><td style="padding:18px 0 6px;font:600 13px/1.4 Inter,Segoe UI,Arial,sans-serif;color:${s.color};text-transform:uppercase;letter-spacing:.04em">${esc(s.heading)}</td></tr>
       ${s.items.map((i) => `
       <tr><td style="padding:10px 14px;border:1px solid #e5e7eb;border-radius:10px;background:#ffffff;font:15px/1.45 Inter,Segoe UI,Arial,sans-serif;color:#111827">
-        ${esc(i.line)}${i.note ? `<br><span style="font-size:13px;color:#6b7280">${esc(i.note)}</span>` : ''}
+        ${i.time ? `<strong style="font-weight:600;white-space:nowrap">${esc(i.time)}</strong> · ` : ''}${esc(i.line)}${i.note ? `<br><span style="font-size:13px;color:#6b7280">${esc(i.note)}</span>` : ''}
       </td></tr><tr><td style="height:6px"></td></tr>`).join('')}`).join('')
     : `<tr><td style="padding:16px 0;font:15px/1.5 Inter,Segoe UI,Arial,sans-serif;color:#374151">Nothing is due right now.</td></tr>`
   return `<!doctype html><html><body style="margin:0;background:#f7f8fa">

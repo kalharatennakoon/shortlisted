@@ -1,10 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { errorMessage } from '../lib/errors'
-import { ExternalIcon, MailIcon, XIcon } from './Icons'
+import { ExternalIcon, MailIcon, SparkleIcon, XIcon } from './Icons'
 import AttachedDocuments from './AttachedDocuments'
 import { CalendarButtons } from './AddToCalendar'
 import TimePicker from './TimePicker'
 import EmailDialog, { type EmailUse } from './EmailDialog'
+import CvCheckDialog from './CvCheckDialog'
+import { CV_ANALYZER_NAME } from '../lib/cvCheck'
 import { eventFor } from '../lib/calendarLinks'
 import { addDays, timeKey, todayKey } from '../lib/dates'
 import { appUrl } from '../lib/supabase'
@@ -55,17 +57,18 @@ export default function ApplicationForm({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [emailOpen, setEmailOpen] = useState(false)
+  const [cvCheckOpen, setCvCheckOpen] = useState(false)
 
-  // Escape closes the form, like the other dialogs. Not while saving, and not while the email draft is open on top
-  // (it closes itself). The time picker stops its own Escape before it gets here.
+  // Escape closes the form, like the other dialogs. Not while saving, and not while the email draft or the CV check
+  // is open on top (they close themselves). The time picker stops its own Escape before it gets here.
   useEffect(() => {
-    if (busy || emailOpen) return
+    if (busy || emailOpen || cvCheckOpen) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !e.defaultPrevented) onClose()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [busy, emailOpen, onClose])
+  }, [busy, emailOpen, cvCheckOpen, onClose])
 
   const set = <K extends keyof ApplicationInput>(key: K, value: ApplicationInput[K]) =>
     setForm((f) => ({ ...f, [key]: value }))
@@ -300,7 +303,15 @@ export default function ApplicationForm({
           </div>
         </section>
 
-        <AttachedDocuments docs={docs} selected={docIds} onChange={setDocIds} onUploaded={onDocUploaded} />
+        <AttachedDocuments docs={docs} selected={docIds} onChange={setDocIds} onUploaded={onDocUploaded}>
+          <div className="cv-check-row">
+            <button type="button" className="chip" onClick={() => setCvCheckOpen(true)}>
+              <SparkleIcon size={13} />
+              {url ? 'Check my CV against this posting' : 'Check my CV for this role'}
+            </button>
+            <span className="muted small">with {CV_ANALYZER_NAME}</span>
+          </div>
+        </AttachedDocuments>
 
         <section className="form-section" aria-labelledby="sec-notes">
           <h3 id="sec-notes">
@@ -323,6 +334,16 @@ export default function ApplicationForm({
     </div>
     {/* Outside the form on purpose: it has its own buttons and inputs, and must not submit this one */}
     {emailOpen && <EmailDialog app={form} onUsed={onEmailUsed} onClose={() => setEmailOpen(false)} />}
+    {cvCheckOpen && (
+      <CvCheckDialog
+        role={form.name}
+        company={form.company}
+        jobUrl={url}
+        docs={docs}
+        attachedIds={docIds}
+        onClose={() => setCvCheckOpen(false)}
+      />
+    )}
     </>
   )
 }
