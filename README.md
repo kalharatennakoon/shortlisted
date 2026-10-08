@@ -26,6 +26,11 @@ npm run dev
 2. Go to **Settings → Pages** and set **Source** to **GitHub Actions**.
 3. Push to `main`. The workflow builds and deploys automatically.
 
+## Desktop app (Windows and Mac)
+`desktop/` holds an Electron app that shows the live site in its own window. GitHub builds the installers
+(`Shortlisted-Setup.exe`, `Shortlisted.dmg`) whenever that folder changes on `main` and the site serves them from
+`/downloads/`. See [desktop/README.md](desktop/README.md).
+
 ## Security
 All data access happens from the browser with the public anon key. Row Level Security policies in the
 migration make sure each user can only read and write their own applications.

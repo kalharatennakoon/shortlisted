@@ -1,6 +1,8 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/auth'
+import { desktopReturn, isDesktop } from './lib/desktop'
 import { isConfigured } from './lib/supabase'
+import DesktopReturn from './pages/DesktopReturn'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import { accountJustDeleted } from './lib/account'
@@ -15,7 +17,8 @@ function Routed() {
   const { session, loading, recovery, notice, linkError } = useAuth()
   // Signed out with something to tell them (session expired, email confirmed, link problem, account deleted):
   // show the sign-in page, where those messages appear, instead of the landing page
-  const hasMessage = Boolean(notice || linkError || accountJustDeleted())
+  // The desktop app has no public home page either: signed out, it opens on the sign-in page.
+  const hasMessage = Boolean(notice || linkError || accountJustDeleted()) || isDesktop
   if (loading) return <p className="muted center">Loading…</p>
   if (session && recovery) return <ResetPassword />
   return (
@@ -48,6 +51,8 @@ export default function App() {
       </div>
     )
   }
+  // A link the desktop app asked for, opened in a browser: send them back to the app, don't sign in here.
+  if (desktopReturn) return <DesktopReturn back={desktopReturn} />
   // HashRouter: GitHub Pages has no server-side rewrites, so routes live after the #.
   return (
     <AuthProvider>

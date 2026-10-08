@@ -1,9 +1,17 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { APP_VERSION, CONTACT_EMAIL, OWNER_NAME } from '../lib/config'
+import { APP_VERSION, CONTACT_EMAIL, DESKTOP_DOWNLOADS, DESKTOP_VERSION, OWNER_NAME } from '../lib/config'
+import { desktop, isDesktop } from '../lib/desktop'
 import { Logo, MailIcon } from './Icons'
 
 const mailto = `mailto:${CONTACT_EMAIL}?subject=Shortlisted`
+
+// The desktop app shows this site, so the site itself is always current; only its window ("shell") can be out
+// of date. When a newer installer has been published, offer it: the link saves the file from inside the app.
+const desktopUpdate =
+  desktop && DESKTOP_VERSION && desktop.version && desktop.version !== DESKTOP_VERSION
+    ? DESKTOP_DOWNLOADS[desktop.platform === 'darwin' ? 'mac' : 'windows']
+    : null
 
 /**
  * Site footer. The full version (landing, privacy) has link columns; `compact` is a slim bar for
@@ -34,6 +42,7 @@ export default function Footer({ compact = false }: { compact?: boolean }) {
           <nav className="footer-inline" aria-label="Footer">
             <Link to="/privacy">Privacy</Link>
             <a href={mailto}>Contact</a>
+            {desktopUpdate && <a href={desktopUpdate} download>Update the desktop app</a>}
           </nav>
           {bottom}
         </div>
@@ -71,6 +80,8 @@ export default function Footer({ compact = false }: { compact?: boolean }) {
                 <Link to="/login">Sign in</Link>
               </>
             )}
+            {/* the card is on the landing page, which signed-in people don't see: it shows when they sign out */}
+            {DESKTOP_VERSION && !isDesktop && !session && <Link to="/" state={{ section: 'desktop' }}>Windows and Mac app</Link>}
           </nav>
 
           <nav className="footer-col" aria-label="Trust">

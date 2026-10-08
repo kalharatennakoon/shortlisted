@@ -1,6 +1,7 @@
 // Document library + links to applications. Files are in the private 'documents' Storage bucket at
 // <user id>/<document id>/<safe file name>; metadata rows in public.documents; links in application_documents.
 
+import { desktop } from './desktop'
 import { supabase } from './supabase'
 import type { DocumentKind, DocumentLink, JobDocument } from './types'
 
@@ -120,13 +121,16 @@ export async function deleteAllMyFiles(): Promise<void> {
  * (inside the click) so pop-up blockers allow it, then pointed at the URL once it's ready.
  */
 export async function openDocument(doc: JobDocument, download = false): Promise<void> {
-  const tab = download ? null : window.open('', '_blank')
+  // The desktop app has no tabs: it shows the document in the person's browser, and saves a download itself
+  // (the navigation below is picked up by `openOutside` in desktop/main.js).
+  const tab = download || desktop ? null : window.open('', '_blank')
   try {
     const { data, error } = await supabase.storage
       .from(BUCKET)
       .createSignedUrl(doc.storage_path, 60, download ? { download: doc.file_name } : undefined)
     if (error) throw error
     if (tab) tab.location.href = data.signedUrl
+    else if (desktop && !download) await desktop.openExternal(data.signedUrl)
     else window.location.assign(data.signedUrl)
   } catch (e) {
     tab?.close()

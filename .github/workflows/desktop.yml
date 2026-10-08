@@ -1,0 +1,97 @@
+name: Desktop app
+
+# Builds the installers of the desktop app (the desktop/ folder): Shortlisted-Setup.exe for Windows
+# and Shortlisted.dmg for Mac. Each is built on its own system; a Mac installer can only be made on a Mac.
+#
+# - A pull request that changes desktop/: builds both and attaches them to the run (Summary -> Artifacts),
+#   so they can be tried before merging. Nothing is published.
+# - A push to main that changes desktop/, or "Run workflow": builds both, publishes them as the
+#   "desktop-latest" release, then redeploys the site, which serves them from /downloads/ (see deploy.yml).
+
+on:
+  push:
+    branches: [main]
+    paths: ['desktop/**', '.github/workflows/desktop.yml']
+  pull_request:
+    paths: ['desktop/**', '.github/workflows/desktop.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build for ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Mac
+            os: macos-latest
+            script: build:mac
+            file: Shortlisted.dmg
+          - name: Windows
+            os: windows-latest
+            script: build:win
+            file: Shortlisted-Setup.exe
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - run: npm ci
+      - run: npm run ${{ matrix.script }}
+        env:
+          # The builder skips signing on pull requests, to keep real certificates away from forks. There is no
+          # certificate here: the Mac app only gets a local ("ad-hoc") signature, which it needs to open at all.
+          CSC_FOR_PULL_REQUEST: 'true'
+      - name: Check the Mac app (signature intact, runs on Apple and Intel chips)
+        if: runner.os == 'macOS'
+        run: |
+          codesign --verify --deep --strict --verbose=2 dist/mac-universal/Shortlisted.app
+          lipo -archs dist/mac-universal/Shortlisted.app/Contents/MacOS/Shortlisted
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.file }}
+          path: desktop/dist/${{ matrix.file }}
+          if-no-files-found: error
+          retention-days: 3
+
+  publish:
+    name: Publish the installers
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release
+      actions: write # start the site deploy
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+      - name: Replace the "desktop-latest" release
+        run: |
+          version=$(node -p "require('./desktop/package.json').version")
+          echo "$version" > installers/version.txt
+          gh release delete desktop-latest --yes --cleanup-tag || true
+          gh release create desktop-latest \
+            installers/Shortlisted-Setup.exe installers/Shortlisted.dmg installers/version.txt \
+            --title "Shortlisted desktop $version" \
+            --notes "Installers for Windows and Mac. The site serves these from /downloads/." \
+            --target "$GITHUB_SHA" --latest=false
+      - name: Redeploy the site so it serves these installers
+        run: gh workflow run deploy.yml --ref main

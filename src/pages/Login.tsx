@@ -4,7 +4,8 @@ import { accountJustDeleted, clearAccountDeletedNotice } from '../lib/account'
 import { ArrowLeftIcon, Logo } from '../components/Icons'
 import PasswordInput from '../components/PasswordInput'
 import { CONFIRM_PARAM, useAuth } from '../lib/auth'
-import { appUrl, enabledOAuthProviders, supabase, type OAuthProvider } from '../lib/supabase'
+import { desktop } from '../lib/desktop'
+import { enabledOAuthProviders, returnUrl, supabase, type OAuthProvider } from '../lib/supabase'
 
 type Mode = 'signin' | 'signup' | 'forgot'
 
@@ -68,7 +69,7 @@ export default function Login() {
         email,
         password,
         // marker so the app sends them to sign in after confirming (see lib/auth.tsx)
-        options: { emailRedirectTo: `${appUrl()}?${CONFIRM_PARAM}=1` },
+        options: { emailRedirectTo: returnUrl({ [CONFIRM_PARAM]: '1' }) },
       }))
       if (!err) {
         // Clear the credentials and flip to sign-in so the form can't be resubmitted by accident;
@@ -79,19 +80,35 @@ export default function Login() {
         setMode('signin')
       }
     } else {
-      ;({ error: err } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: appUrl() }))
+      ;({ error: err } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: returnUrl() }))
       // Same message whether or not the address has an account, so it can't be used to probe emails.
       if (!err)
-        setMessage('If an account exists for that email, a reset link is on its way. Open it in this browser.')
+        setMessage(
+          `If an account exists for that email, a reset link is on its way. Open it ${desktop ? 'on this computer' : 'in this browser'}.`,
+        )
     }
     setBusy(false)
     if (err) setError(err.message)
   }
 
   async function oauth(provider: OAuthProvider) {
+    clearLinkError()
     setError(null)
-    const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: appUrl() } })
-    if (error) setError(error.message)
+    setMessage(null)
+    if (!desktop) {
+      const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: returnUrl() } })
+      if (error) setError(error.message)
+      return
+    }
+    // Desktop app: Google doesn't allow signing in inside an app's own window, so it happens in the person's
+    // browser, which then hands them back to the app (lib/desktop.ts).
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: returnUrl(), skipBrowserRedirect: true },
+    })
+    if (error || !data.url) return setError(error?.message ?? 'Could not start the sign-in. Please try again.')
+    await desktop.openExternal(data.url)
+    setMessage(`Finish signing in with ${PROVIDER_LABEL[provider]} in your browser, then come back to this window.`)
   }
 
   const title = { signin: 'Sign in to your applications', signup: 'Create your account', forgot: 'Reset your password' }[mode]
@@ -99,9 +116,12 @@ export default function Login() {
 
   return (
     <div className="auth-wrap">
-      <Link to="/" className="back-link auth-home">
-        <ArrowLeftIcon size={15} /> Home
-      </Link>
+      {/* the desktop app has no public home page: signed out, it opens here */}
+      {!desktop && (
+        <Link to="/" className="back-link auth-home">
+          <ArrowLeftIcon size={15} /> Home
+        </Link>
+      )}
       <form className="card auth-card" onSubmit={onSubmit}>
         <div className="auth-brand">
           <Logo size={40} />
@@ -153,7 +173,7 @@ export default function Login() {
         )}
         {notice && !message && !shownError && <p className="success">{notice}</p>}
         {shownError && <p className="error">{shownError}</p>}
-        {message && <p className="success">{message}</p>}
+        {message && !linkError && <p className="success">{message}</p>}
         <button type="submit" className="primary" disabled={busy}>
           {busy ? 'Please wait…' : submitLabel}
         </button>

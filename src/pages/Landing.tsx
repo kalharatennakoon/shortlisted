@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import Footer from '../components/Footer'
+import { DESKTOP_DOWNLOADS, DESKTOP_VERSION } from '../lib/config'
 import {
   BellIcon,
   BoardIcon,
@@ -8,9 +9,11 @@ import {
   CalendarPlusIcon,
   ChartIcon,
   CheckIcon,
+  DownloadIcon,
   FileIcon,
   Logo,
   MailIcon,
+  MonitorIcon,
   PauseIcon,
   PlayIcon,
   ShieldIcon,
@@ -284,8 +287,104 @@ function Tile({ icon, title, text, children, className = '', isNew = false }: { 
   )
 }
 
+// ---------- desktop app ----------
+
+type Computer = 'windows' | 'mac'
+const COMPUTERS: Record<Computer, { label: string; needs: string }> = {
+  windows: { label: 'Download for Windows', needs: 'Windows 10 or 11' },
+  mac: { label: 'Download for Mac', needs: 'macOS 13 or later' },
+}
+
+/** What the visitor is on, to put their own download first. Phones and tablets can't install either. */
+function visitorDevice(): Computer | 'phone' | 'other' {
+  const ua = navigator.userAgent
+  if (/Android|iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return 'phone'
+  if (/Windows/i.test(ua)) return 'windows'
+  if (/Macintosh|Mac OS X/i.test(ua)) return 'mac'
+  return 'other'
+}
+
+/** Download card for the Windows and Mac app. Rendered only once an installer has been published. */
+function DesktopApp({ version }: { version: string }) {
+  const device = visitorDevice()
+  const order: Computer[] = device === 'mac' ? ['mac', 'windows'] : ['windows', 'mac']
+  return (
+    <section className="lp-section lp-desktop-wrap" id="desktop">
+      <div className="landing-inner">
+        <div className="lp-desktop">
+          <div className="lp-desktop-text">
+            <span className="lp-tile-top">
+              <span className="lp-tile-icon big"><MonitorIcon size={24} /></span>
+              <span className="lp-new">New</span>
+            </span>
+            <h2>Shortlisted for Windows and Mac</h2>
+            <p>
+              The same tracker in its own window, one click from your taskbar or Dock. Sign in with the account
+              you already have, and everything stays in step with the website and your phone.
+            </p>
+          </div>
+          <div className="lp-desktop-get">
+            {device === 'phone' ? (
+              <p className="lp-desktop-note">Open this page on your computer to download it.</p>
+            ) : (
+              <div className="lp-downloads">
+                {order.map((c, i) => (
+                  // primary = the visitor's own computer; on anything else (Linux…) neither is singled out
+                  <a
+                    key={c}
+                    className={`btn btn-lg ${i === 0 && device !== 'other' ? 'primary' : 'secondary'}`}
+                    href={DESKTOP_DOWNLOADS[c]}
+                    download
+                  >
+                    <DownloadIcon size={17} />
+                    <span>
+                      {COMPUTERS[c].label}
+                      <small>{COMPUTERS[c].needs}</small>
+                    </span>
+                  </a>
+                ))}
+              </div>
+            )}
+            <p className="lp-desktop-meta">Free · Version {version}</p>
+          </div>
+          <details className="lp-desktop-help">
+            <summary>Installing it for the first time</summary>
+            <div className="lp-desktop-steps">
+              <div>
+                <h3>Windows</h3>
+                <p>
+                  Open the downloaded file. If you see "Windows protected your PC", choose <b>More info</b>, then{' '}
+                  <b>Run anyway</b>. Shortlisted installs and opens by itself.
+                </p>
+              </div>
+              <div>
+                <h3>Mac</h3>
+                <p>
+                  Open the downloaded file and drag Shortlisted into Applications, then open it. The first time,
+                  macOS says it can't check the app: go to <b>System Settings</b>, <b>Privacy &amp; Security</b>,
+                  scroll down and choose <b>Open Anyway</b>.
+                </p>
+              </div>
+            </div>
+            <p className="lp-desktop-why">
+              Your computer asks because Shortlisted is a small free app without a paid publisher certificate from
+              Microsoft or Apple. The app is this website in its own window, nothing more.
+            </p>
+          </details>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 /** Public home page for signed-out visitors. */
 export default function Landing() {
+  // The footer's "Windows and Mac app" link: routes live after the #, so a plain #desktop link can't be used.
+  const { state } = useLocation() as { state: { section?: string } | null }
+  useEffect(() => {
+    if (state?.section) document.getElementById(state.section)?.scrollIntoView({ behavior: 'smooth' })
+  }, [state])
+
   return (
     <div className="landing">
       <header className="landing-nav">
@@ -531,6 +630,8 @@ export default function Landing() {
             </figure>
           </div>
         </section>
+
+        {DESKTOP_VERSION && <DesktopApp version={DESKTOP_VERSION} />}
 
         <section className="lp-section lp-privacy-wrap">
           <div className="landing-inner">
