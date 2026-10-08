@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
+import { desktop, DESKTOP_LINK_FAILED } from './desktop'
 import { SESSION_LOST_EVENT } from './sessionLost'
 import { supabase } from './supabase'
 
@@ -31,7 +32,7 @@ const AuthContext = createContext<AuthContextValue>({
 })
 
 /**
- * Sign-up confirmation emails link back to `appUrl()?confirmed=1` (see Login.tsx). Supabase has already
+ * Sign-up confirmation emails link back to `returnUrl({ confirmed: '1' })` (see Login.tsx). Supabase has already
  * confirmed the address by then; the library would also sign the user straight in, but we want them to
  * land on the sign-in screen instead. This runs once per page load, before the UI reads the session.
  */
@@ -110,6 +111,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }))
     })
     return () => sub.subscription.unsubscribe()
+  }, [])
+
+  // Desktop app: Google sign-in and reset links finish in the person's browser, which hands the code back to
+  // the app (lib/desktop.ts). Using it signs them in, or opens "set a new password" for a reset link, through
+  // the same events as on the web.
+  useEffect(() => {
+    if (!desktop) return
+    return desktop.onAuthCallback(async ({ code, flowId }) => {
+      let failed = !code
+      if (code) {
+        try {
+          const { error } = await supabase.auth.exchangeCodeForSession(code, flowId ? { flowId } : undefined)
+          failed = Boolean(error)
+        } catch {
+          failed = true // no connection
+        }
+      }
+      // Already signed in (an old link followed again): nothing to report.
+      setState((s) => ({ ...s, notice: null, linkError: failed && !s.session ? DESKTOP_LINK_FAILED : null }))
+    })
   }, [])
 
   // Keep the UI in step with the stored login. The library can clear it without an event (e.g. a failed

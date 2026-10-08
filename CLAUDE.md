@@ -9,8 +9,9 @@ then "Shortlistd" (no "e") for about a week, then Shortlisted. Use it for anythi
 and link-preview tags, manifest, reminder emails, calendar events, docs.
 The GitHub repo is `kalharatennakoon/shortlisted` (renamed from `shortlistd`, before that `job-tracker`), so the site is
 at `https://kalharatennakoon.github.io/shortlisted/`. That address is repeated in Supabase's Site URL / Redirect URLs,
-the reminders function's `APP_URL` secret, the canonical + Open Graph URLs in `index.html` and `SHORTLISTED_URL` in the
-`cv-analyzer-lk` repo (`src/lib/handoff.ts`); change them together.
+the reminders function's `APP_URL` secret, the canonical + Open Graph URLs in `index.html`, `SHORTLISTED_URL` in the
+`cv-analyzer-lk` repo (`src/lib/handoff.ts`) and `LIVE_URL` in `desktop/main.js` (installed desktop apps open it, so
+changing it means a new installer and everyone reinstalling); change them together.
 GitHub Pages does not redirect the old `/shortlistd/` or `/job-tracker/` addresses.
 These still carry the old name on purpose; don't rename them without Kalhara asking:
 - The contact mailbox `jobtracker.app.lk@gmail.com` (also the reminders' SMTP account).
@@ -25,6 +26,7 @@ the eight view screenshots and `m-insights.webp`.
 - **Routing:** `react-router-dom` with `HashRouter`, because GitHub Pages has no server-side rewrites
 - **Auth + database:** Supabase (email/password auth, Postgres). The browser talks to Supabase directly with the anon key.
 - **Hosting:** GitHub Pages, deployed by `.github/workflows/deploy.yml` on every push to `main`
+- **Desktop app:** Electron (`desktop/`, its own `package.json`), a window onto the live site. See "Desktop app" below.
 
 There is no custom backend. Row Level Security is the only thing protecting user data.
 Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
@@ -46,6 +48,8 @@ Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
   tab focus/visibility and listens for `reportSessionLost()` (lib/sessionLost.ts); either signs out locally and shows
   "Your session expired. Please sign in again." Auth calls that can hit AuthSessionMissingError should report it.
 - `supabase` client is a globalThis singleton so dev hot-reload never creates a second client racing token refresh.
+- Links that come back later (sign-up confirmation, reset, OAuth) use `returnUrl()`, not `appUrl()`: it adds the
+  `?desktop=1` marker when the desktop app asked (see "Desktop app").
 
 ## Routing & landing
 - `#/` shows the Tracker when signed in and the Landing page when signed out. If there is a message to show
@@ -70,6 +74,42 @@ Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
   `prefers-reduced-motion`, and the tour/journey only run while on screen (`useInView`).
 - Link previews: Open Graph + Twitter tags in `index.html` point at the absolute URL of `public/og-image.png`
   (1200×630). Update the image and tags together, and re-scrape with LinkedIn's Post Inspector after changing them.
+
+## Desktop app (Windows and Mac)
+`desktop/` is an Electron app that loads the live site, so it is always the current version; an installer is only
+rebuilt when `desktop/` changes. Kalhara asked for downloadable `.exe` and `.dmg` files (October 2026); an installable
+web app (PWA) was the alternative considered earlier. `desktop/README.md` has the commands.
+- The page knows it is in the app by `window.shortlistedDesktop` (`desktop/preload.js`, typed in `lib/desktop.ts`:
+  `desktop`, `isDesktop`). Everything desktop-specific in `src/` hangs off those two; without the bridge the site
+  behaves exactly as before.
+- **What differs in the app:** signed out, `#/` goes to the sign-in page (no landing page, no Home link); links to
+  other sites, `mailto:` and "open document" go to the person's browser or mail app; the app's own pages opened in a
+  new tab ("Manage documents") get a second app window; `.ics` files are saved to Downloads and opened; other
+  downloads get a "Save as" window; "Check my CV" opens the hand-off link directly (no blank tab to fill).
+- **Sign-in from the app.** Google blocks sign-in inside an app's own window, and email links open in the browser,
+  not the app. So the app asks Supabase to return to `…/shortlisted/?desktop=1`; that page, in the browser, is
+  `pages/DesktopReturn.tsx` ("go back to the app"), which opens `shortlisted://auth?code=…`; the installed app is
+  registered for `shortlisted://` links and finishes with `exchangeCodeForSession` (`lib/auth.tsx`). The browser page
+  must never use the code itself: the PKCE secret is in the app, and a code works once (`desktopReturn` in
+  `lib/desktop.ts` strips it from the address before the Supabase client exists). A sign-up confirmation carries
+  `?confirmed=1&desktop=1` and only says "go back and sign in". Nothing new is needed in Supabase: the existing
+  `…/shortlisted/**` Redirect URL covers the marker.
+- `desktop/main.js` only ever shows pages under the site's address (`isAppUrl`; the host serves Kalhara's other sites
+  too, so the path counts) plus its bundled `offline.html`. It passes only the code from a `shortlisted://` link to
+  the page, never text to display. Keep `contextIsolation`/`sandbox` on and the bridge small.
+- **Installers:** `.github/workflows/desktop.yml` builds `Shortlisted.dmg` (macOS runner, universal, ad-hoc signed)
+  and `Shortlisted-Setup.exe` (Windows runner) when `desktop/` changes: on a pull request as run artifacts to try, on
+  `main` as the `desktop-latest` release, after which it starts the Pages deploy. The repo is private, so releases
+  aren't public: `deploy.yml` copies the release into the site at `/downloads/` and sets `VITE_DESKTOP_VERSION`.
+  The landing page's download card (`DesktopApp` in `Landing.tsx`) and the footer link only render when that is set.
+- **Not signed** with paid certificates (Kalhara is keeping the app free for now), so Windows SmartScreen and macOS
+  Gatekeeper warn on first open; the download card's "Installing it for the first time" explains both. No Windows or
+  Apple logos on the buttons (same reasoning as the calendar buttons).
+- **Updates:** there is no auto-update (macOS needs a signed app for it). Bump `version` in `desktop/package.json`
+  and merge; an installed copy that is older than the site's `DESKTOP_VERSION` shows "Update the desktop app" in the
+  compact footer.
+- Icons: `desktop/build/icon.png` (1024px, the logo tile at macOS's 824px size with its shadow), `icon.icns` and
+  `icon.ico` (full-bleed tile). Regenerate all three if the logo changes.
 
 ## Privacy & account deletion
 - The repo is (or is about to be) private: GitHub Pro keeps Pages public. Don't link to the repo from the app; contact is by email.
@@ -181,7 +221,10 @@ src/
   lib/cvCheck.ts       Pure: CV Analyzer LK hand-off (cvChoices, cvProblem, unreadableCvs, handoffUrl) + its address and limits
   lib/reminders.ts     Reminder settings (get/save), sendTestEmail + unsubscribe via supabase.functions.invoke('reminders')
   lib/account.ts       deleteMyAccount(): delete Storage files, then rpc; one-time 'account deleted' notice
-  lib/config.ts        Owner name, contact email (jobtracker.app.lk@gmail.com), APP_VERSION, privacy date
+  lib/config.ts        Owner name, contact email (jobtracker.app.lk@gmail.com), APP_VERSION, privacy date,
+                       DESKTOP_VERSION (null until an installer is published) + DESKTOP_DOWNLOADS
+  lib/desktop.ts       Desktop app bridge (`desktop`, `isDesktop`) and `desktopReturn`: a link the app asked for,
+                       opened in a browser
   lib/emailTemplates.ts  Pure: EMAIL_TEMPLATES, defaultTemplate (thank-you once interviewed), buildEmail, isEmail,
                        mailtoUrl (CRLF line breaks), gmailUrl
   lib/calendarLinks.ts Pure: eventFor(app) -> CalendarEvent, googleCalendarUrl, icsFile (RFC 5545: escaping, 75-byte
@@ -201,6 +244,7 @@ src/
                        frame and phone), roles Ticker, Journey (a card moving Applied → Accepted), feature tiles,
                        stats, privacy, CTA
   pages/Login.tsx      Sign in / sign up / forgot password; OAuth buttons; `?mode=signup` opens sign-up; Home link
+  pages/DesktopReturn.tsx  "Go back to the Shortlisted app": shown in a browser instead of the site (see "Desktop app")
   pages/Profile.tsx    #/profile: hero, Basic details, Password (Google-only accounts see a note), Delete account
   pages/Unsubscribe.tsx  #/unsubscribe?token=… from reminder emails; needs a click (link scanners), works signed out
   pages/Privacy.tsx    Plain-language privacy page (#/privacy, works signed in or out)
@@ -249,12 +293,16 @@ src/
                        Sri Lanka + version) on landing + privacy; `compact` slim bar inside AppShell. No portfolio link
   components/Icons.tsx  Inline SVG icons + Logo (SVG, unique gradient ids via useId)
 supabase/migrations/   SQL migrations, run in order
+desktop/               The Windows and Mac app: main.js (window, links, sign-in links, downloads), preload.js (bridge),
+                       offline.html, build/ (icons), package.json (version + installer settings)
 ```
 
 ## Commands
 - `npm run dev`: local dev server (needs `.env`, see `.env.example`)
 - `npm run build`: type-check and build to `dist/`
 - `npm run lint`: oxlint
+- In `desktop/`: `npm start` (the app, showing the live site; `SHORTLISTED_URL=http://localhost:5173/ npm start` for
+  the local one), `npm run build:mac` / `build:win` (installers into `desktop/dist/`; a `.dmg` needs a Mac)
 
 ## Conventions
 - Schema changes go in a **new** timestamped file in `supabase/migrations/`. Never edit an applied migration.
@@ -301,6 +349,8 @@ supabase/migrations/   SQL migrations, run in order
 - [x] Add to calendar for next steps (Google Calendar link, .ics file), with an optional time
 - [x] Time in reminder emails
 - [x] "Check my CV" button that hands the CV, role and job link to CV Analyzer LK
+- [x] Desktop app for Windows and Mac (Electron window onto the site, installers built by GitHub Actions)
+- [ ] Signed installers (Apple Developer Program + a Windows certificate) so the first-open warnings go away
 - [ ] Private calendar feed to subscribe to (needs an Edge Function)
 - [ ] Contacts / recruiter per application (name, LinkedIn, last contacted; only the email exists so far)
 - [x] Password reset flow and Google sign-in (GitHub button ready once enabled in Supabase)

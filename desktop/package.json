@@ -1,0 +1,80 @@
+{
+  "name": "shortlisted-desktop",
+  "productName": "Shortlisted",
+  "version": "1.0.0",
+  "description": "Shortlisted for Windows and Mac: track every job application in one place.",
+  "author": "Kalhara Tennakoon",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --publish never",
+    "build:mac": "electron-builder --mac --publish never",
+    "build:win": "electron-builder --win --publish never"
+  },
+  "devDependencies": {
+    "electron": "44.7.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "io.github.kalharatennakoon.shortlisted",
+    "productName": "Shortlisted",
+    "copyright": "© 2026 Kalhara Tennakoon",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "offline.html"
+    ],
+    "electronLanguages": [
+      "en",
+      "en-US",
+      "en-GB"
+    ],
+    "protocols": [
+      {
+        "name": "Shortlisted",
+        "schemes": [
+          "shortlisted"
+        ]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ]
+    },
+    "dmg": {
+      "title": "Shortlisted",
+      "artifactName": "Shortlisted.${ext}"
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "artifactName": "Shortlisted-Setup.${ext}",
+      "shortcutName": "Shortlisted",
+      "uninstallDisplayName": "Shortlisted"
+    }
+  }
+}

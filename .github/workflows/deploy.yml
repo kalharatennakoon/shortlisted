@@ -24,11 +24,28 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # The Windows and Mac installers are built by desktop.yml and kept as the "desktop-latest" release.
+      # The repo is private, so its releases are too: the site serves copies from /downloads/ instead.
+      - name: Fetch the desktop installers, if any have been published
+        id: desktop
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release download desktop-latest --dir downloads; then
+            echo "version=$(cat downloads/version.txt)" >> "$GITHUB_OUTPUT"
+            rm downloads/version.txt
+          else
+            rm -rf downloads
+            echo "No desktop release yet: the site is published without the download section."
+          fi
       - run: npm run build
         env:
           VITE_BASE: /${{ github.event.repository.name }}/
+          VITE_DESKTOP_VERSION: ${{ steps.desktop.outputs.version }} # empty hides the download section
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      - name: Put the installers next to the site
+        run: if [ -d downloads ]; then mv downloads dist/downloads; fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

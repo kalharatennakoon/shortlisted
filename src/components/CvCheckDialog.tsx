@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CV_ANALYZER_NAME, CV_LINK_SECONDS, cvChoices, cvProblem, handoffUrl, unreadableCvs } from '../lib/cvCheck'
+import { desktop } from '../lib/desktop'
 import { fmtSize, signedDocumentUrl } from '../lib/documents'
 import { errorMessage } from '../lib/errors'
 import type { JobDocument } from '../lib/types'
@@ -45,12 +46,18 @@ export default function CvCheckDialog({ role, company, jobUrl, docs, attachedIds
   async function open() {
     setError(null)
     setBlockedUrl(null)
-    // Opened inside the click, so pop-up blockers allow it; pointed at the other site once the CV link is ready
-    const tab = window.open('', '_blank')
+    // Opened inside the click, so pop-up blockers allow it; pointed at the other site once the CV link is ready.
+    // The desktop app has no tabs: it opens the finished link in the person's browser instead.
+    const tab = desktop ? null : window.open('', '_blank')
     setBusy(true)
     try {
       const cvUrl = doc ? await signedDocumentUrl(doc, CV_LINK_SECONDS) : null
       const url = handoffUrl({ position: role, jobUrl, cvUrl, cvName: doc?.file_name ?? null })
+      if (desktop) {
+        await desktop.openExternal(url)
+        onClose()
+        return
+      }
       if (!tab) {
         setBlockedUrl(url)
         setBusy(false)
