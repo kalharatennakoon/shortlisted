@@ -128,7 +128,7 @@ export default function ImportExportDialog({ apps, onImported, onClose }: Props)
                   <li>Unzip the download and choose the <strong>.csv</strong> file here.</li>
                 </ol>
               </details>
-              <button type="button" className="link small io-template" onClick={() => download('shortlistd-template.csv', templateCsv())}>
+              <button type="button" className="link small io-template" onClick={() => download('shortlisted-template.csv', templateCsv())}>
                 Download a template CSV
               </button>
             </section>

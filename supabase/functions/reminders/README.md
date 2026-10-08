@@ -22,7 +22,7 @@ Opt-in per user in Profile → Email reminders (table `public.reminder_settings`
    | `SMTP_USER` | `jobtracker.app.lk@gmail.com` |
    | `SMTP_PASS` | a Gmail **app password** for that account (the one already used for Supabase Auth SMTP works) |
    | `CRON_SECRET` | a long random string (e.g. `openssl rand -hex 24`) |
-   | `APP_URL` | `https://kalharatennakoon.github.io/shortlistd/` |
+   | `APP_URL` | `https://kalharatennakoon.github.io/shortlisted/` |
    `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are provided automatically.
 4. **Schedule:** enable `pg_cron` and `pg_net` (Database → Extensions), then run `schedule.sql` with
    `<PROJECT_REF>` and `<CRON_SECRET>` filled in.

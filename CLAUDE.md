@@ -1,21 +1,24 @@
-# Shortlistd — project guide for Claude
+# Shortlisted — project guide for Claude
 
 A multi-user job application tracker, modeled on Kalhara's Notion page **Jobs → Application Tracker**.
 Users sign up, log in, and track their own applications on a status board and in a table.
 
 ## Name
-The app is called **Shortlistd** (one word, no "e"; rebranded from "Job Tracker" in October 2026). Use it for anything a
-person reads: the UI, page title and link-preview tags, manifest, reminder emails, calendar events, docs.
-The GitHub repo is `kalharatennakoon/shortlistd` (renamed from `job-tracker`), so the site is at
-`https://kalharatennakoon.github.io/shortlistd/`. That address is repeated in Supabase's Site URL / Redirect URLs, the
-reminders function's `APP_URL` secret and the canonical + Open Graph URLs in `index.html`; change them together.
-GitHub Pages does not redirect the old `/job-tracker/` address.
+The app is called **Shortlisted** (one word, spelled in full with the "e"). It was "Job Tracker" until October 2026,
+then "Shortlistd" (no "e") for about a week, then Shortlisted. Use it for anything a person reads: the UI, page title
+and link-preview tags, manifest, reminder emails, calendar events, docs.
+The GitHub repo is `kalharatennakoon/shortlisted` (renamed from `shortlistd`, before that `job-tracker`), so the site is
+at `https://kalharatennakoon.github.io/shortlisted/`. That address is repeated in Supabase's Site URL / Redirect URLs,
+the reminders function's `APP_URL` secret, the canonical + Open Graph URLs in `index.html` and `SHORTLISTED_URL` in the
+`cv-analyzer-lk` repo (`src/lib/handoff.ts`); change them together.
+GitHub Pages does not redirect the old `/shortlistd/` or `/job-tracker/` addresses.
 These still carry the old name on purpose; don't rename them without Kalhara asking:
 - The contact mailbox `jobtracker.app.lk@gmail.com` (also the reminders' SMTP account).
 - The pg_cron job `job-tracker-reminders` (already scheduled) and the calendar event UID suffix `@job-tracker`
   (changing it would duplicate events people have already added).
 - Applied migrations (the comment in the first one).
-The wordmark is baked into `public/og-image.png` and the navbar of the eight view screenshots in `public/landing/`.
+The wordmark is baked into `public/og-image.png` (three places) and the navbar of nine screenshots in `public/landing/`:
+the eight view screenshots and `m-insights.webp`.
 
 ## Stack
 - **Frontend:** Vite + React 19 + TypeScript, plain CSS (`src/index.css`): light-only, white background, Inter font, design tokens at the top
@@ -31,13 +34,13 @@ Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
   doesn't collide with HashRouter. The library exchanges the code and strips it from the URL.
 - PKCE links (reset, confirm) only work in the browser that requested them; `lib/auth.tsx` shows a friendly error otherwise.
 - Redirects go to `appUrl()` (origin + path). Supabase must allow it: Site URL = the Pages URL; Redirect URLs =
-  `https://kalharatennakoon.github.io/shortlistd/**` and `http://localhost:5173/**`.
+  `https://kalharatennakoon.github.io/shortlisted/**` and `http://localhost:5173/**`.
 - OAuth buttons render only for providers enabled in Supabase (read from the public `/auth/v1/settings`).
   Google is set up; GitHub just needs enabling in Supabase.
 - Sign-up confirmation: `emailRedirectTo` is `appUrl()?confirmed=1`. `lib/auth.tsx` sees the marker once at load,
   lets the library exchange the code, signs out locally, cleans the URL and shows "Your email is confirmed. Please
   sign in." Works even if the link is opened in another browser (the email is confirmed server-side before redirect).
-  Supabase Redirect URLs must include `https://kalharatennakoon.github.io/shortlistd/**` or the marker is dropped.
+  Supabase Redirect URLs must include `https://kalharatennakoon.github.io/shortlisted/**` or the marker is dropped.
 - Keep side effects (URL cleanup) out of React state updaters; StrictMode runs them twice in dev.
 - The library can clear the stored session without an event (failed background refresh). AuthProvider re-checks on
   tab focus/visibility and listens for `reportSessionLost()` (lib/sessionLost.ts); either signs out locally and shows
@@ -147,10 +150,11 @@ Check my CV (hand-off to CV Analyzer LK, Kalhara's other app at `https://cv-anal
   first, then the rest of the library; only kind CV, PDF/DOCX/TXT, up to 4 MB, which are CV Analyzer LK's limits), the
   role and the job link. "Open" makes a signed link to the CV that lasts `CV_LINK_SECONDS` (5 minutes) and opens the
   other site in a new tab. Role, link and CV come from the form as it is, saved or not.
-- Everything goes in the URL **fragment** (`#from=shortlistd&position=…&jobUrl=…&cv=…&cvName=…`, built by
+- Everything goes in the URL **fragment** (`#from=shortlisted&position=…&jobUrl=…&cv=…&cvName=…`, built by
   `lib/cvCheck.ts`), never the query string: fragments aren't sent to servers, so the CV link stays out of Vercel's
   logs. The receiving end is `src/lib/handoff.ts` in the `cv-analyzer-lk` repo, which only accepts a CV link to a
   Supabase Storage signed URL for the `documents` bucket; change the parameter names in both repos together.
+  It accepts `from=shortlisted` and the earlier `from=shortlistd`, so a tab still running the old copy keeps working.
 - The new tab is opened inside the click (pop-up blockers), its `opener` is cleared before it is pointed at the other
   site, and a blocked tab falls back to a plain link. CV Analyzer LK only fills its form in; the person presses Analyse.
 - This is the one place a document leaves the app, so the privacy page has a "Checking your CV" section. Keep it accurate.
