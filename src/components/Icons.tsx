@@ -210,7 +210,7 @@ export function Logo({ size = 32 }: { size?: number }) {
   const shine = `logo-shine-${uid}`
   const ink = `logo-ink-${uid}`
   return (
-    <svg className="logo" width={size} height={size} viewBox="0 0 512 512" role="img" aria-label="Shortlistd logo">
+    <svg className="logo" width={size} height={size} viewBox="0 0 512 512" role="img" aria-label="Shortlisted logo">
       <defs>
         <linearGradient id={bg} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#3b82f6" />

@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth'
 import { APP_VERSION, CONTACT_EMAIL, OWNER_NAME } from '../lib/config'
 import { Logo, MailIcon } from './Icons'
 
-const mailto = `mailto:${CONTACT_EMAIL}?subject=Shortlistd`
+const mailto = `mailto:${CONTACT_EMAIL}?subject=Shortlisted`
 
 /**
  * Site footer. The full version (landing, privacy) has link columns; `compact` is a slim bar for
@@ -16,7 +16,7 @@ export default function Footer({ compact = false }: { compact?: boolean }) {
   const bottom = (
     <div className="footer-bottom">
       <p>
-        <span>© {year} Shortlistd</span>
+        <span>© {year} Shortlisted</span>
         <span>Built by {OWNER_NAME} in Sri&nbsp;Lanka</span>
       </p>
       <span className="version" title="App version">v{APP_VERSION}</span>
@@ -29,7 +29,7 @@ export default function Footer({ compact = false }: { compact?: boolean }) {
         <div className="footer-inner footer-compact">
           <Link to="/" className="footer-brand">
             <Logo size={22} />
-            <span>Shortlistd</span>
+            <span>Shortlisted</span>
           </Link>
           <nav className="footer-inline" aria-label="Footer">
             <Link to="/privacy">Privacy</Link>
@@ -48,7 +48,7 @@ export default function Footer({ compact = false }: { compact?: boolean }) {
           <div className="footer-about">
             <Link to="/" className="footer-brand">
               <Logo size={28} />
-              <span>Shortlistd</span>
+              <span>Shortlisted</span>
             </Link>
             <p>A simple, private board for your job hunt. Track every application, never miss a follow-up.</p>
             <ul className="footer-tags" aria-label="Highlights">

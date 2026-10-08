@@ -44,7 +44,7 @@ export default function Unsubscribe() {
           <p className="error">This link is missing its code. Use the link in the latest reminder email, or turn reminders off in Profile &amp; settings.</p>
         ) : (
           <>
-            <p className="muted center-text">You'll stop getting the daily next-step reminders from Shortlistd. Your applications aren't affected.</p>
+            <p className="muted center-text">You'll stop getting the daily next-step reminders from Shortlisted. Your applications aren't affected.</p>
             {error && <p className="error">{error}</p>}
             <button className="primary" onClick={onClick} disabled={state === 'busy'}>
               {state === 'busy' ? 'Unsubscribing…' : 'Stop reminder emails'}
@@ -52,7 +52,7 @@ export default function Unsubscribe() {
           </>
         )}
         <p className="auth-foot">
-          <Link to={session ? '/profile' : '/'}>{session ? 'Go to Profile & settings' : 'Go to Shortlistd'}</Link>
+          <Link to={session ? '/profile' : '/'}>{session ? 'Go to Profile & settings' : 'Go to Shortlisted'}</Link>
         </p>
       </div>
     </div>

@@ -55,7 +55,7 @@ export interface CvHandoff {
 
 /** The address that opens CV Analyzer LK with the form filled in. */
 export function handoffUrl({ position, jobUrl, cvUrl, cvName }: CvHandoff): string {
-  const params = new URLSearchParams({ from: 'shortlistd' })
+  const params = new URLSearchParams({ from: 'shortlisted' })
   if (position.trim()) params.set('position', position.trim().slice(0, 200))
   if (jobUrl) params.set('jobUrl', jobUrl)
   if (cvUrl) {

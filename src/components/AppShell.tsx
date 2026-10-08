@@ -21,9 +21,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
     <div className="app">
       <nav className="navbar" ref={nav}>
         <div className="navbar-inner">
-          <Link to="/" className="brand" aria-label="Shortlistd home">
+          <Link to="/" className="brand" aria-label="Shortlisted home">
             <Logo size={30} />
-            <span>Shortlistd</span>
+            <span>Shortlisted</span>
           </Link>
           <span className="spacer" />
           <AccountMenu />
