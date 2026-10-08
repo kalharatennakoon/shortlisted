@@ -51,6 +51,10 @@ jobs:
           cache-dependency-path: desktop/package-lock.json
       - run: npm ci
       - run: npm run ${{ matrix.script }}
+        env:
+          # The builder skips signing on pull requests, to keep real certificates away from forks. There is no
+          # certificate here: the Mac app only gets a local ("ad-hoc") signature, which it needs to open at all.
+          CSC_FOR_PULL_REQUEST: 'true'
       - name: Check the Mac app (signature intact, runs on Apple and Intel chips)
         if: runner.os == 'macOS'
         run: |
