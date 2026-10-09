@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { errorMessage } from '../lib/errors'
 import { ExternalIcon, MailIcon, SparkleIcon, XIcon } from './Icons'
 import AttachedDocuments from './AttachedDocuments'
@@ -6,8 +6,10 @@ import { CalendarButtons } from './AddToCalendar'
 import TimePicker from './TimePicker'
 import EmailDialog, { type EmailUse } from './EmailDialog'
 import CvCheckDialog from './CvCheckDialog'
+import QuickAdd from './QuickAdd'
 import { CV_ANALYZER_NAME } from '../lib/cvCheck'
 import { eventFor } from '../lib/calendarLinks'
+import { fillForm, fillNote, type FilledField, type JobLinkAnswer, type LastFill } from '../lib/jobLink'
 import { addDays, timeKey, todayKey } from '../lib/dates'
 import { appUrl } from '../lib/supabase'
 import { postingState, postingSummary, postingUrl } from '../lib/posting'
@@ -73,6 +75,29 @@ export default function ApplicationForm({
   const set = <K extends keyof ApplicationInput>(key: K, value: ApplicationInput[K]) =>
     setForm((f) => ({ ...f, [key]: value }))
 
+  // Quick add (new applications only): what it last put in each field, so a second link can replace its own
+  // values but never something typed by hand, and which fields to light up for a moment
+  const formNow = useRef(form)
+  useEffect(() => {
+    formNow.current = form
+  })
+  const lastFill = useRef<LastFill>({})
+  const [justFilled, setJustFilled] = useState<FilledField[]>([])
+  useEffect(() => {
+    if (!justFilled.length) return
+    const timer = setTimeout(() => setJustFilled([]), 2400)
+    return () => clearTimeout(timer)
+  }, [justFilled])
+  const lit = (field: FilledField) => (justFilled.includes(field) ? 'just-filled' : undefined)
+
+  function onLinkRead(answer: JobLinkAnswer) {
+    const fill = fillForm(formNow.current, answer, lastFill.current)
+    lastFill.current = fill.last
+    setForm(fill.form)
+    setJustFilled(fill.filled)
+    return fillNote(answer, fill.filled)
+  }
+
   const url = postingUrl(form)
   /** Record that the posting was looked at today, and whether it was still up */
   const checkPosting = (closed: boolean) =>
@@ -136,15 +161,17 @@ export default function ApplicationForm({
           </button>
         </header>
 
+        {!initial && <QuickAdd onAnswer={onLinkRead} disabled={busy} />}
+
         <section className="form-section" aria-labelledby="sec-job">
           <h3 id="sec-job">The job</h3>
           <label>
             Role
-            <input required value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. DevOps Engineer" />
+            <input required className={lit('name')} value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. DevOps Engineer" />
           </label>
           <label>
             Company
-            <input value={form.company ?? ''} onChange={(e) => set('company', e.target.value)} />
+            <input className={lit('company')} value={form.company ?? ''} onChange={(e) => set('company', e.target.value)} />
           </label>
         </section>
 
@@ -163,7 +190,7 @@ export default function ApplicationForm({
             </label>
             <label>
               Platform
-              <select value={form.platform ?? ''} onChange={(e) => set('platform', (e.target.value || null) as ApplicationInput['platform'])}>
+              <select className={lit('platform')} value={form.platform ?? ''} onChange={(e) => set('platform', (e.target.value || null) as ApplicationInput['platform'])}>
                 <option value="">—</option>
                 {PLATFORMS.map((p) => <option key={p}>{p}</option>)}
               </select>
@@ -253,6 +280,7 @@ export default function ApplicationForm({
                 id="job-url"
                 type="url"
                 placeholder="https://…"
+                className={lit('job_url')}
                 value={form.job_url ?? ''}
                 onChange={(e) => setJobUrl(e.target.value)}
               />
@@ -317,7 +345,7 @@ export default function ApplicationForm({
           <h3 id="sec-notes">
             <label htmlFor="app-notes">Notes</label> <span className="muted">optional</span>
           </h3>
-          <textarea id="app-notes" rows={4} value={form.notes ?? ''} onChange={(e) => set('notes', e.target.value)} />
+          <textarea id="app-notes" rows={4} className={lit('notes')} value={form.notes ?? ''} onChange={(e) => set('notes', e.target.value)} />
         </section>
         {error && <p className="error">{error}</p>}
         <div className="actions">

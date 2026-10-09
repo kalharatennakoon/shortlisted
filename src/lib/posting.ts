@@ -1,5 +1,6 @@
 // Job posting checks: is the saved posting (job_url) still up, and when did the user last look?
-// Checks are manual. The app can't fetch other sites from the browser, and job sites block automated visits.
+// Checks are manual. The app can't fetch other sites from the browser, and job sites often block automated visits
+// (quick add, lib/jobLink.ts, reads a posting once through an Edge Function when the person pastes its link).
 
 import { daysBetween, todayKey } from './dates'
 import { fmtDate } from './format'

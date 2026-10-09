@@ -123,6 +123,12 @@ export const ExternalIcon = (p: IconProps) => (
     <path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
   </Icon>
 )
+export const LinkIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5" />
+    <path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5" />
+  </Icon>
+)
 export const PencilIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
