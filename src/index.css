@@ -525,6 +525,27 @@ button.small-btn { padding: 5px 10px; font-size: 12.5px; }
 .form-section > h3 { font-size: 14px; font-weight: 600; color: var(--text); }
 .form-section > h3 .muted { font-size: 12.5px; font-weight: 400; }
 .form-section > h3 label { display: inline; font: inherit; color: inherit; }
+/* quick add: start a new application from a job posting's link */
+.form-section.quick-add { background: var(--accent-soft); border-color: #cddcfd; }
+.quick-add > h3 { display: flex; align-items: center; gap: 7px; }
+.quick-add > h3 svg { color: var(--accent); flex: none; }
+.quick-add .field > label { font-weight: 400; color: var(--text-2); }
+.quick-add-note { display: flex; align-items: flex-start; gap: 7px; font-size: 12.5px; line-height: 1.45; color: var(--text-2); }
+.quick-add-note:empty { display: none; }
+.quick-add-note svg { flex: none; margin-top: 2px; }
+.quick-add-note.ok { color: var(--success); }
+.quick-add-note.warn { color: #92400e; }
+.quick-add-note.error { color: var(--danger); }
+.quick-add-note.reading { color: var(--muted); align-items: center; }
+.quick-add-spinner { width: 13px; height: 13px; flex: none; border-radius: 50%; border: 2px solid #bfd3fe; border-top-color: var(--accent); animation: quick-add-spin .7s linear infinite; }
+@keyframes quick-add-spin { to { transform: rotate(360deg); } }
+/* a field quick add has just filled: lit for a moment so the eye finds what changed */
+.just-filled { animation: just-filled 2.4s ease-out; }
+@keyframes just-filled { 0%, 45% { background: #e6efff; border-color: #8fb1fb; } }
+@media (prefers-reduced-motion: reduce) {
+  .quick-add-spinner { animation-duration: 2.4s; }
+  .just-filled { animation: none; background: #e6efff; border-color: #8fb1fb; }
+}
 .quick-dates { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 button.chip { padding: 4px 10px; font-size: 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-2); }
 button.chip:hover { background: var(--accent-soft); border-color: #bfd3fe; color: var(--accent); }

@@ -28,7 +28,8 @@ the eight view screenshots and `m-insights.webp`.
 - **Hosting:** GitHub Pages, deployed by `.github/workflows/deploy.yml` on every push to `main`
 - **Desktop app:** Electron (`desktop/`, its own `package.json`), a window onto the live site. See "Desktop app" below.
 
-There is no custom backend. Row Level Security is the only thing protecting user data.
+There is no custom backend, only two small Supabase Edge Functions (`reminders`, `job-link`). Row Level Security is the
+only thing protecting user data.
 Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
 
 ## Auth notes
@@ -199,6 +200,32 @@ Check my CV (hand-off to CV Analyzer LK, Kalhara's other app at `https://cv-anal
   site, and a blocked tab falls back to a plain link. CV Analyzer LK only fills its form in; the person presses Analyse.
 - This is the one place a document leaves the app, so the privacy page has a "Checking your CV" section. Keep it accurate.
 
+Quick add from a job link (function `supabase/functions/job-link/`, see its README; no schema change):
+- "Start from a link" at the top of a **new** application (`components/QuickAdd.tsx`; not shown when editing). Pasting a
+  link starts it; a typed one needs "Fill in" or Enter (caught there, so it never saves the form). The answer fills
+  Role, Company, Platform and the Job posting link; location, closing date and job type go into Notes as lines
+  ("Location: …"), because there are no columns for them.
+- The browser can't read other sites, so `lib/jobLink.ts` calls the `job-link` Edge Function, which opens the posting's
+  public page once. `extract.ts` (pure, tested with `node --test supabase/functions/job-link/extract.test.ts`) reads, best
+  first: schema.org JobPosting data (JSON-LD), then the page title with a few patterns ("Acme hiring Nurse in Kandy |
+  LinkedIn", "Role at Company - Place | Site", "Role | Acme Careers"), then, when the site refused, the words in the link
+  itself (".../role-at-company-123"), which the form reports as a guess.
+- **Sites say no, and that is fine.** LinkedIn refuses most automated visits, Indeed and Glassdoor all of them, and
+  topjobs.lk ads are images. The function answers 200 with a `problem` (blocked / gone / unreachable / unreadable)
+  and the form keeps the link and says so plainly. Don't try to get round a refusal: one request, a User-Agent that says
+  it is Shortlisted, no cookies, no retries, no pretending to be a browser, no private or sign-in-only endpoints.
+- `fillForm` never overwrites what a person typed: a field is filled when it is empty or still holds what quick add put
+  there last time (so a second link replaces the first one's details). Notes are added to, not replaced.
+- The function fetches an address chosen by whoever is signed in, so it only takes http(s) links to public hosts on the
+  standard port, checks every redirect and what the name resolves to (`isPublicHost`, `isPublicIPv4/6`), reads at most
+  1.5 MB for 9 seconds, allows 12 links a minute per user, and only ever returns five short fields, never the page.
+  Keep all of that if it changes.
+- LinkedIn links copied from a search or "recommended" page (`?currentJobId=…`) are turned into the job's own page, and
+  tracking parameters are dropped (`cleanLink`); the tidied link is what gets saved.
+- If the site is deployed before the function (or the function is down), the form says quick add can't be reached and
+  still keeps the link. The function has to be **deployed**, and redeployed after any change to its two files.
+- The pasted link leaves the browser, so the privacy page has a "Starting from a job link" section. Keep it accurate.
+
 Notion status groups: To-do = Applied, Interviewed · In progress = Offered · Complete = Accepted, Rejected, No Response.
 Notion views: a **board grouped by Status** (shows Name, Company, Applied On) and a **calendar by Applied On**.
 
@@ -230,6 +257,8 @@ src/
   lib/calendarLinks.ts Pure: eventFor(app) -> CalendarEvent, googleCalendarUrl, icsFile (RFC 5545: escaping, 75-byte
                        folding), icsFileName, eventWhen, downloadIcs
   lib/dates.ts         Local YYYY-MM-DD helpers (todayKey, addDays, daysBetween, timeKey -> 'HH:MM'). Never use toISOString for "today"
+  lib/jobLink.ts       Quick add: asLink, readJobLink (calls the `job-link` function), fillForm (what goes into the form,
+                       never over typed values), fillNote (the sentence under the link box), platformFor, notesFor
   lib/posting.ts       Job posting check (manual, no automatic fetching): postingUrl (http(s) only, never `javascript:`),
                        postingState (none/closed/unchecked/due after 7 days/checked), postingSummary
   lib/nextSteps.ts     Up-next logic: plannedSteps (overdue first, then by time), urgency/labels (stepLabel adds the time),
@@ -262,6 +291,8 @@ src/
   components/StatsView.tsx  Stats tab: range switch (30 days / 90 days / All time, by Applied On; undated rows only in
                        All time), KPI tiles (sparkline, response ring, delta vs previous period), weekly columns with
                        avg line, hiring funnel, status split bar + legend, platform bars, Highlights. Table toggle per chart
+  components/QuickAdd.tsx  "Start from a link" panel at the top of a new application (see "Quick add from a job link").
+                       Not a <form>; catches Enter; drops a slow answer when a newer link has been pasted
   components/ApplicationForm.tsx  Add/edit/delete modal, one `.form-section` panel per group: The job, Your application,
                        Next step (date + TimePicker + quick dates, add-to-calendar chips), Job posting, Contact (email +
                        Draft email), Documents, Notes. onSave gets (input, documentIds); Tracker saves the app then syncs
@@ -292,6 +323,8 @@ src/
   components/Footer.tsx  Full footer (brand + tagline, Product / Privacy / Get in touch columns, © + Built by <name> in
                        Sri Lanka + version) on landing + privacy; `compact` slim bar inside AppShell. No portfolio link
   components/Icons.tsx  Inline SVG icons + Logo (SVG, unique gradient ids via useId)
+supabase/functions/    Edge Functions, deployed by hand (each has a README): `reminders` (email digest) and `job-link`
+                       (quick add: index.ts fetches the posting safely, extract.ts reads it, extract.test.ts)
 supabase/migrations/   SQL migrations, run in order
 desktop/               The Windows and Mac app: main.js (window, links, sign-in links, downloads), preload.js (bridge),
                        offline.html, build/ (icons), package.json (version + installer settings)
@@ -301,6 +334,7 @@ desktop/               The Windows and Mac app: main.js (window, links, sign-in 
 - `npm run dev`: local dev server (needs `.env`, see `.env.example`)
 - `npm run build`: type-check and build to `dist/`
 - `npm run lint`: oxlint
+- `node --test supabase/functions/job-link/extract.test.ts`: tests for reading job postings (Node 22.18 or newer)
 - In `desktop/`: `npm start` (the app, showing the live site; `SHORTLISTED_URL=http://localhost:5173/ npm start` for
   the local one), `npm run build:mac` / `build:win` (installers into `desktop/dist/`; a `.dmg` needs a Mac)
 
@@ -350,6 +384,7 @@ desktop/               The Windows and Mac app: main.js (window, links, sign-in 
 - [x] Time in reminder emails
 - [x] "Check my CV" button that hands the CV, role and job link to CV Analyzer LK
 - [x] Desktop app for Windows and Mac (Electron window onto the site, installers built by GitHub Actions)
+- [x] Quick add: paste a job posting's link and the form is filled in from it (Edge Function `job-link`)
 - [ ] Signed installers (Apple Developer Program + a Windows certificate) so the first-open warnings go away
 - [ ] Private calendar feed to subscribe to (needs an Edge Function)
 - [ ] Contacts / recruiter per application (name, LinkedIn, last contacted; only the email exists so far)

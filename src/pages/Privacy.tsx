@@ -82,6 +82,16 @@ export default function Privacy() {
           you press one of those buttons.
         </p>
 
+        <h2>Starting from a job link</h2>
+        <p>
+          When you paste a job posting's link into <strong>Start from a link</strong>, the link is sent to
+          Shortlisted's server, which opens the posting's public page once and sends back the role, company, location
+          and closing date it finds there. The job site sees a visit from Shortlisted, not from you, and nothing about
+          you or your account is sent to it. The link is saved only if you save the application; apart from that, the
+          server notes just the name of the site (for example "linkedin.com") to show which sites can be read. Nothing
+          is sent if you never use it.
+        </p>
+
         <h2>Checking your CV</h2>
         <p>
           <strong>Check my CV</strong> opens{' '}

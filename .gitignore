@@ -26,3 +26,6 @@ dist-ssr
 
 # local Deno type checks of supabase/functions
 deno.lock
+
+# Supabase CLI working files (created by `supabase login` / `functions deploy`)
+supabase/.temp
