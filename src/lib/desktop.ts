@@ -17,6 +17,24 @@ export const desktop: DesktopBridge | undefined = (window as Window & { shortlis
 
 export const isDesktop = Boolean(desktop)
 
+/**
+ * True when `published` is a later version than `installed`: "1.0.10" is later than "1.0.9", "1.1" than "1.0.4".
+ * Only later counts, never just different. The app shows whichever copy of the site it has loaded, and that copy
+ * can be older than the app: a window left open over a release, or one opened again minutes after installing the
+ * new version (the browser cache still holds the page that offered it). Text that isn't a version is never later.
+ */
+export function isNewerVersion(published: string, installed: string): boolean {
+  const numbers = (version: string) => /^v?(\d+(?:\.\d+)*)/i.exec(version.trim())?.[1].split('.').map(Number)
+  const a = numbers(published)
+  const b = numbers(installed)
+  if (!a || !b) return false
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const difference = (a[i] ?? 0) - (b[i] ?? 0)
+    if (difference !== 0) return difference > 0
+  }
+  return false
+}
+
 /** Added to the address Supabase sends people back to when the desktop app asked (sign-in, reset, confirm). */
 export const DESKTOP_PARAM = 'desktop'
 

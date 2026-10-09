@@ -114,7 +114,9 @@ web app (PWA) was the alternative considered earlier. `desktop/README.md` has th
   Apple logos on the buttons (same reasoning as the calendar buttons).
 - **Updates:** there is no auto-update (macOS needs a signed app for it). Bump `version` in `desktop/package.json`
   and merge; an installed copy that is older than the site's `DESKTOP_VERSION` shows "Update the desktop app" in the
-  compact footer.
+  compact footer. Older, never just different (`isNewerVersion` in `lib/desktop.ts`): the first version compared
+  with `!==`, and a freshly installed 1.0.1 was told to update because its window still had the copy of the site
+  that offered 1.0.0 (pages are cached for ten minutes, and an open window keeps its page until it is reloaded).
 - Icons: `scripts/make-icons.py` (Pillow) draws them from the logo's measurements: `desktop/build/icon.png` and
   `icon.icns` for the Mac (tile and shadow on a 1024px canvas), `icon.ico` for Windows (the tile fills the square,
   each size drawn at its own size). Colours and size are settings at its top; don't edit the image files by hand.

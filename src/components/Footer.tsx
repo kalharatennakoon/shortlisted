@@ -1,15 +1,16 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { APP_VERSION, CONTACT_EMAIL, DESKTOP_DOWNLOADS, DESKTOP_VERSION, OWNER_NAME } from '../lib/config'
-import { desktop, isDesktop } from '../lib/desktop'
+import { desktop, isDesktop, isNewerVersion } from '../lib/desktop'
 import { Logo, MailIcon } from './Icons'
 
 const mailto = `mailto:${CONTACT_EMAIL}?subject=Shortlisted`
 
 // The desktop app shows this site, so the site itself is always current; only its window ("shell") can be out
 // of date. When a newer installer has been published, offer it: the link saves the file from inside the app.
+// Newer, not merely different: someone on the latest version must never be told to update.
 const desktopUpdate =
-  desktop && DESKTOP_VERSION && desktop.version && desktop.version !== DESKTOP_VERSION
+  desktop && DESKTOP_VERSION && isNewerVersion(DESKTOP_VERSION, desktop.version)
     ? DESKTOP_DOWNLOADS[desktop.platform === 'darwin' ? 'mac' : 'windows']
     : null
 
