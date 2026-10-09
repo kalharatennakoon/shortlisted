@@ -18,8 +18,9 @@ These still carry the old name on purpose; don't rename them without Kalhara ask
 - The pg_cron job `job-tracker-reminders` (already scheduled) and the calendar event UID suffix `@job-tracker`
   (changing it would duplicate events people have already added).
 - Applied migrations (the comment in the first one).
-The wordmark is baked into `public/og-image.png` (three places) and the navbar of nine screenshots in `public/landing/`:
-the eight view screenshots and `m-insights.webp`.
+The wordmark and the logo are baked into `public/og-image.png` (three places) and the navbar of nine screenshots in
+`public/landing/`: the eight view screenshots and `m-insights.webp`. When the logo went black they were patched in
+place (old tile painted out, new one drawn over it) rather than retaken.
 
 ## Stack
 - **Frontend:** Vite + React 19 + TypeScript, plain CSS (`src/index.css`): light-only, white background, Inter font, design tokens at the top
@@ -48,6 +49,11 @@ Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
 - The library can clear the stored session without an event (failed background refresh). AuthProvider re-checks on
   tab focus/visibility and listens for `reportSessionLost()` (lib/sessionLost.ts); either signs out locally and shows
   "Your session expired. Please sign in again." Auth calls that can hit AuthSessionMissingError should report it.
+  **Only a login that is really gone counts:** once the access token has run out (an hour in the background),
+  `getSession()` tries to renew it and answers `session: null` with a *retryable* error when there is no connection,
+  while the stored login is untouched. The re-check must leave that alone (`isAuthRetryableFetchError`); signing out
+  on it logged people out of the desktop app whenever they came back before the Wi-Fi did. Kalhara doesn't want
+  people signed out automatically: sign out only when the server has refused the login or the stored one is gone.
 - `supabase` client is a globalThis singleton so dev hot-reload never creates a second client racing token refresh.
 - Links that come back later (sign-up confirmation, reset, OAuth) use `returnUrl()`, not `appUrl()`: it adds the
   `?desktop=1` marker when the desktop app asked (see "Desktop app").
@@ -109,8 +115,12 @@ web app (PWA) was the alternative considered earlier. `desktop/README.md` has th
 - **Updates:** there is no auto-update (macOS needs a signed app for it). Bump `version` in `desktop/package.json`
   and merge; an installed copy that is older than the site's `DESKTOP_VERSION` shows "Update the desktop app" in the
   compact footer.
-- Icons: `desktop/build/icon.png` (1024px, the logo tile at macOS's 824px size with its shadow), `icon.icns` and
-  `icon.ico` (full-bleed tile). Regenerate all three if the logo changes.
+- Icons: `scripts/make-icons.py` (Pillow) draws them from the logo's measurements: `desktop/build/icon.png` and
+  `icon.icns` for the Mac (tile and shadow on a 1024px canvas), `icon.ico` for Windows (the tile fills the square,
+  each size drawn at its own size). Colours and size are settings at its top; don't edit the image files by hand.
+  The Mac tile is 742px, 10% smaller than Apple's 824px template: Kalhara found the standard size a bit large in
+  the Dock (October 2026). `desktop/offline.html` has the logo written out as SVG. An installed copy only gets a
+  new icon from a new installer (bump `version`), and macOS can keep showing the old one until the Dock restarts.
 
 ## Privacy & account deletion
 - The repo is (or is about to be) private: GitHub Pro keeps Pages public. Don't link to the repo from the app; contact is by email.
@@ -139,6 +149,8 @@ Table `public.applications`, defined in `supabase/migrations/`:
 | `posting_checked_on` | (new) | date the user last opened the job posting; null = never |
 | `posting_closed` | (new) | boolean, default false: the posting has been taken down |
 | `user_id` | (owner) | uuid → auth.users, defaults to `auth.uid()` |
+
+Stages of an application live in their own table, `public.application_stages` (see "Timeline" below).
 
 Documents (migration `20260928000000_documents.sql`, not in Notion):
 - `public.documents`: the user's library (name, kind enum CV / Cover letter / Portfolio / Certificate / Other,
@@ -226,6 +238,53 @@ Quick add from a job link (function `supabase/functions/job-link/`, see its READ
   still keeps the link. The function has to be **deployed**, and redeployed after any change to its two files.
 - The pasted link leaves the browser, so the privacy page has a "Starting from a job link" section. Keep it accurate.
 
+Already added (no schema change, `lib/duplicates.ts`, `components/DuplicateNote.tsx`):
+- A **new** application that repeats one in the list gets a warning with "Open it" and "Keep both". Two ways to match:
+  the same posting (`postingKey`: ignores http/https, `www.`, a trailing slash, parameter order and tracking; a
+  LinkedIn job is known by its number, so a search-page link matches the job's own page) or the same role at the
+  same company (letters and digits only, any case). Never shown when editing, and never a block: applying again
+  to the same place is normal.
+- A pasted link is checked **before** the posting is read (`findExisting` on `QuickAdd`), so nothing is fetched or
+  filled in for a job that is already there; "Add it again" carries on and quietens the warning for that application.
+- "Open it" swaps the open form to the other application. `Tracker` bumps `formKey` to start the form afresh; don't
+  key the form by application id (a failed document attach switches new → edit and must keep the form's state).
+- `TRACKING` in `lib/duplicates.ts` repeats the list in `supabase/functions/job-link/extract.ts`; change them together.
+
+Timeline (migration `20261009000000_application_stages.sql`, `lib/stages.ts`, `components/Timeline.tsx`):
+- `public.application_stages`: one row per stage of an application after someone replied (title in the person's own
+  words, `stage_date`, optional `stage_time`, `outcome` enum Waiting / Passed / Not selected, notes ≤ 2,000). RLS: own
+  rows only, and a stage can only hang off the caller's own application (insert and update). Stages cascade from
+  their application, which also covers account deletion. `STAGE_OUTCOMES` in `types.ts` must match the enum.
+- What a stage shows is worked out, not stored (`stageState`): no result + dated ahead = "Coming up", no result +
+  past = "Waiting to hear", else Passed / Not selected.
+- **A stage is stored the moment "Save stage" is pressed**, not when the application is saved (Kalhara asked for this
+  after stages were lost: the first version saved them with the form, so closing it without Save dropped them). For
+  an application that exists, `Timeline` gets a `store` (`onStageSave` / `onStageRemove` from `Tracker`) and every
+  save or removal goes to the database there and then; the form's own Save and Cancel don't touch the timeline. A
+  **new** application has nowhere to store them yet, so its stages wait in the form and go in once it is created
+  (`onSave(input, documentIds, stages)`); the section says which of the two is happening.
+- **Nothing deletes a stage as a side effect.** `saveStages` is one upsert (ids are made in the browser, so a retry
+  can't add a stage twice) and never removes; `removeStage` removes the one stage the person chose, after an inline
+  "Remove this stage?". Don't bring back "make the stored list match the form's list": the form can be opened before
+  the timeline has loaded, and a diff against a list it never saw deletes real data. For the same reason the form takes
+  in a timeline, and attached documents, that arrive after it opened (`initialStages` undefined → array;
+  `lateDocIds`) instead of treating "not loaded yet" as "none".
+- One stage is edited at a time, in a copy: Cancel or Escape throws the copy away, Enter saves the stage (both are
+  caught so they never save or close the application). A stage with no name is asked for one, never dropped. Saving
+  the application while a stage is open is held back with a message (`stagePending`), so an edit can't be lost.
+- **Next step vs timeline.** The next step is the one thing coming up (reminders, calendar, Up next); the timeline is
+  the record. They are joined in two places so nothing is typed twice: "Done" in Up next moves an Interview,
+  Assessment or Call into the timeline (`stageFromStep`; not a Follow up, and not when that day already has a
+  stage), and a stage dated ahead has "Set as next step" (`stepFromStage`) when no step is planned. Reminder emails
+  still come only from the next step; the `reminders` function doesn't read stages.
+- The section also points out when the status has fallen behind (`suggestedStatus`: Applied → Interviewed once a
+  stage has happened; → Rejected after "Not selected"). It suggests; it never changes the status by itself.
+- Cards and rows show a small count (`StageBadge`, lists from the `StageLists` context, like `DocBadge`). The CSV
+  export gets a last column "Timeline" (text, one stage per line); import leaves it alone ("Ignored column").
+- If the code is deployed before the migration, `listStages()` fails, `stages` stays `null` in `Tracker`, and the
+  section, the badges and the Up next hand-over simply aren't there. Suggested stage names are deliberately not
+  IT-only ("Assessment", "Panel interview"); keep them that way.
+
 Notion status groups: To-do = Applied, Interviewed · In progress = Offered · Complete = Accepted, Rejected, No Response.
 Notion views: a **board grouped by Status** (shows Name, Company, Applied On) and a **calendar by Applied On**.
 
@@ -257,6 +316,12 @@ src/
   lib/calendarLinks.ts Pure: eventFor(app) -> CalendarEvent, googleCalendarUrl, icsFile (RFC 5545: escaping, 75-byte
                        folding), icsFileName, eventWhen, downloadIcs
   lib/dates.ts         Local YYYY-MM-DD helpers (todayKey, addDays, daysBetween, timeKey -> 'HH:MM'). Never use toISOString for "today"
+  lib/duplicates.ts    Pure: postingKey (one string per posting, however the link was copied), findDuplicate (same link, or
+                       same role + company), findByLink
+  lib/stages.ts        Timeline: stageState, sortStages, stageFromStep / stepFromStage (the bridge to Next step),
+                       suggestedStatus, stagesAsText (CSV), then the data calls listStages, saveStages (one upsert,
+                       never deletes), removeStage (one stage)
+  lib/stageLists.ts    React context: application id -> its timeline (for board/table badges)
   lib/jobLink.ts       Quick add: asLink, readJobLink (calls the `job-link` function), fillForm (what goes into the form,
                        never over typed values), fillNote (the sentence under the link box), platformFor, notesFor
   lib/posting.ts       Job posting check (manual, no automatic fetching): postingUrl (http(s) only, never `javascript:`),
@@ -293,10 +358,16 @@ src/
                        avg line, hiring funnel, status split bar + legend, platform bars, Highlights. Table toggle per chart
   components/QuickAdd.tsx  "Start from a link" panel at the top of a new application (see "Quick add from a job link").
                        Not a <form>; catches Enter; drops a slow answer when a newer link has been pasted
+  components/DuplicateNote.tsx  "You've already added this posting": the matching application, Open it / Keep both
+  components/Timeline.tsx  Timeline section of the form: stages oldest first joined by a line, one edited at a time in a
+                       copy ("Save stage" stores it straight away for an existing application), remove with a
+                       confirm, suggested names, "Set as next step", status hint
+  components/StageBadge.tsx  Timeline icon + count on board cards and table rows
   components/ApplicationForm.tsx  Add/edit/delete modal, one `.form-section` panel per group: The job, Your application,
-                       Next step (date + TimePicker + quick dates, add-to-calendar chips), Job posting, Contact (email +
-                       Draft email), Documents, Notes. onSave gets (input, documentIds); Tracker saves the app then syncs
-                       links. The email dialog is rendered outside the <form> so it can't submit it
+                       Next step (date + TimePicker + quick dates, add-to-calendar chips), Timeline, Job posting, Contact
+                       (email + Draft email), Documents, Notes. onSave gets (input, documentIds, stages); Tracker saves
+                       the app then syncs links (and a new application's stages). The email dialog is rendered outside
+                       the <form> so it can't submit it
   components/TimePicker.tsx  Custom time field + panel (see "Email drafts and add to calendar"). Holds several buttons:
                        never wrap it in a <label>, pass `labelledBy`
   components/EmailDialog.tsx  Email draft: template switch (edits kept per template), To, Subject, Message, reminder
@@ -326,6 +397,7 @@ src/
 supabase/functions/    Edge Functions, deployed by hand (each has a README): `reminders` (email digest) and `job-link`
                        (quick add: index.ts fetches the posting safely, extract.ts reads it, extract.test.ts)
 supabase/migrations/   SQL migrations, run in order
+scripts/make-icons.py  Draws every icon that is a picture file (desktop icons, site PNG icons) from one set of settings
 desktop/               The Windows and Mac app: main.js (window, links, sign-in links, downloads), preload.js (bridge),
                        offline.html, build/ (icons), package.json (version + installer settings)
 ```
@@ -357,9 +429,12 @@ desktop/               The Windows and Mac app: main.js (window, links, sign-in 
 - Board cards: Enter opens, Space picks up. Clicks within 250ms of a drop are ignored (mouseup click). Don't add
   sortable-within-column without a position column in the DB; cards are ordered by the list order.
 - Icons are inline SVGs in `components/Icons.tsx` (no icon library).
-- Logo = stacked kanban cards with a check on a blue→violet tile (Kalhara chose it). The same artwork lives in
-  `Logo` (Icons.tsx), `public/favicon.svg`, `public/icon-192.png`, `public/icon-512.png`, `public/apple-touch-icon.png`;
-  change them together. `public/manifest.webmanifest` makes the site installable to a phone home screen.
+- Logo = stacked kanban cards with a check: **black tile, white cards, black tick** everywhere (Kalhara's choice,
+  October 2026; it was a blue→violet tile before). The interface's own accent stays blue. The artwork is written out
+  as SVG in `Logo` (Icons.tsx), `public/favicon.svg` and `desktop/offline.html`, and drawn by `scripts/make-icons.py`
+  into `public/icon-192.png`, `icon-512.png`, `apple-touch-icon.png` and the desktop icons; change the SVGs and the
+  script's settings together, then run the script. `public/manifest.webmanifest` makes the site installable to a
+  phone home screen.
 
 ## Charts
 - Hand-built HTML/CSS, no chart library. One series per chart in `--series-1` (light `#2a78d6`, dark `#3987e5`, both validated for contrast on the app surfaces).
@@ -385,6 +460,8 @@ desktop/               The Windows and Mac app: main.js (window, links, sign-in 
 - [x] "Check my CV" button that hands the CV, role and job link to CV Analyzer LK
 - [x] Desktop app for Windows and Mac (Electron window onto the site, installers built by GitHub Actions)
 - [x] Quick add: paste a job posting's link and the form is filled in from it (Edge Function `job-link`)
+- [x] "You've already added this posting" warning (same link, or same role at the same company)
+- [x] Timeline per application: each stage with its date, result and notes (table `application_stages`)
 - [ ] Signed installers (Apple Developer Program + a Windows certificate) so the first-open warnings go away
 - [ ] Private calendar feed to subscribe to (needs an Edge Function)
 - [ ] Contacts / recruiter per application (name, LinkedIn, last contacted; only the email exists so far)

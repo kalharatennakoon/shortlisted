@@ -5,6 +5,7 @@
 import { parseCsv, toCsv } from './csv'
 import { timeKey, toKey } from './dates'
 import { isEmail } from './emailTemplates'
+import { stagesAsText } from './stages'
 import {
   NEXT_STEPS,
   PLATFORMS,
@@ -15,6 +16,7 @@ import {
   type NextStep,
   type Platform,
   type Priority,
+  type Stage,
   type Status,
 } from './types'
 
@@ -60,16 +62,21 @@ const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
 
 // ---------- Export ----------
 
-export function applicationsToCsv(apps: Application[]): string {
+/** The export's last column: each application's timeline as text, one stage per line. Export only; import skips it. */
+export const TIMELINE_HEADER = 'Timeline'
+
+/** `stages` (application id -> its timeline) adds the Timeline column, so the export holds everything that was typed in. */
+export function applicationsToCsv(apps: Application[], stages?: Map<string, Stage[]>): string {
   return toCsv([
-    EXPORT_COLUMNS.map(([, header]) => header),
-    ...apps.map((a) =>
-      EXPORT_COLUMNS.map(([field]) => {
+    [...EXPORT_COLUMNS.map(([, header]) => header), ...(stages ? [TIMELINE_HEADER] : [])],
+    ...apps.map((a) => [
+      ...EXPORT_COLUMNS.map(([field]) => {
         if (field === 'posting_closed') return a.posting_closed ? 'Yes' : ''
         if (field === 'next_time') return (a.next_date && timeKey(a.next_time)) || '' // 14:30, not Postgres' 14:30:00
         return (a[field] as string | null) ?? ''
       }),
-    ),
+      ...(stages ? [stagesAsText(stages.get(a.id) ?? [])] : []),
+    ]),
   ])
 }
 

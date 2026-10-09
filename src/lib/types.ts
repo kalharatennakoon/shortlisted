@@ -40,6 +40,30 @@ export interface Application {
 
 export type ApplicationInput = Omit<Application, 'id' | 'user_id' | 'created_at' | 'updated_at'>
 
+// ---------- Timeline (supabase/migrations/20261009000000_application_stages.sql) ----------
+
+export const STAGE_OUTCOMES = ['Waiting', 'Passed', 'Not selected'] as const
+export type StageOutcome = (typeof STAGE_OUTCOMES)[number]
+
+/** One stage of an application after someone replied: a phone screen, an interview, an assessment… */
+export interface Stage {
+  id: string
+  application_id: string
+  user_id: string
+  /** What it was, in the person's own words: "Phone screen", "Panel interview" */
+  title: string
+  stage_date: string // YYYY-MM-DD
+  /** 'HH:MM' from the form or 'HH:MM:SS' from Postgres; null = no particular time */
+  stage_time: string | null
+  outcome: StageOutcome
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** A stage as the form holds it: new ones have an id already (made in the browser) so saving twice can't add it twice. */
+export type StageDraft = Pick<Stage, 'id' | 'title' | 'stage_date' | 'stage_time' | 'outcome' | 'notes'>
+
 // ---------- Documents (supabase/migrations/20260928000000_documents.sql) ----------
 
 export const DOCUMENT_KINDS = ['CV', 'Cover letter', 'Portfolio', 'Certificate', 'Other'] as const

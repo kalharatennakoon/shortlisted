@@ -1,21 +1,34 @@
 import { useEffect, useId, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react'
 import { asLink, JobLinkError, readJobLink, type FillNote, type JobLinkAnswer } from '../lib/jobLink'
+import type { Application } from '../lib/types'
+import DuplicateNote from './DuplicateNote'
 import { CheckIcon, LinkIcon } from './Icons'
 
 interface Props {
   /** Puts the answer into the form and says what happened */
   onAnswer: (answer: JobLinkAnswer) => FillNote
+  /** The application that already has this link, if any: asked before the posting is read */
+  findExisting?: (link: string) => Application | null
+  /** Leave this new application and open that one instead */
+  onOpenExisting?: (app: Application) => void
+  /** The person chose to add the posting again: don't warn about that application a second time */
+  onAddAgain?: (app: Application) => void
   disabled?: boolean
 }
 
-type State = { step: 'idle' } | { step: 'reading'; host: string } | { step: 'done'; note: FillNote } | { step: 'error'; text: string }
+type State =
+  | { step: 'idle' }
+  | { step: 'reading'; host: string }
+  | { step: 'done'; note: FillNote }
+  | { step: 'error'; text: string }
+  | { step: 'duplicate'; link: string; app: Application }
 
 /**
  * "Start from a link" at the top of a new application: paste a posting's link and the form below is filled in from
  * it (lib/jobLink.ts). Pasting starts it straight away; typing a link needs the button or Enter.
  * Not a <form>, and Enter is caught here: it sits inside the application form and must not save it.
  */
-export default function QuickAdd({ onAnswer, disabled }: Props) {
+export default function QuickAdd({ onAnswer, findExisting, onOpenExisting, onAddAgain, disabled }: Props) {
   const id = useId()
   const [text, setText] = useState('')
   const [state, setState] = useState<State>({ step: 'idle' })
@@ -30,10 +43,17 @@ export default function QuickAdd({ onAnswer, disabled }: Props) {
 
   const reading = state.step === 'reading'
 
-  async function read(raw: string) {
+  async function read(raw: string, again = false) {
     const link = asLink(raw)
     if (!link) {
       setState({ step: 'error', text: 'Paste the full link to the job posting, starting with https://' })
+      return
+    }
+    // Already in the list? Say so before reading anything, and let the person choose
+    const existing = again ? null : (findExisting?.(link) ?? null)
+    if (existing) {
+      run.current++ // an answer still on its way for an earlier link no longer counts
+      setState({ step: 'duplicate', link, app: existing })
       return
     }
     const mine = ++run.current
@@ -90,7 +110,7 @@ export default function QuickAdd({ onAnswer, disabled }: Props) {
             aria-describedby={`${id}-note`}
             onChange={(e) => {
               setText(e.target.value)
-              if (state.step === 'error') setState({ step: 'idle' })
+              if (state.step === 'error' || state.step === 'duplicate') setState({ step: 'idle' })
             }}
             onPaste={onPaste}
             onKeyDown={onKeyDown}
@@ -100,6 +120,17 @@ export default function QuickAdd({ onAnswer, disabled }: Props) {
           </button>
         </div>
       </div>
+      {state.step === 'duplicate' && (
+        <DuplicateNote
+          duplicate={{ app: state.app, why: 'link' }}
+          keepLabel="Add it again"
+          onOpen={() => onOpenExisting?.(state.app)}
+          onKeep={() => {
+            onAddAgain?.(state.app)
+            void read(state.link, true)
+          }}
+        />
+      )}
       <p id={`${id}-note`} className={`quick-add-note ${state.step === 'done' ? state.note.tone : state.step}`} role="status" aria-live="polite">
         {state.step === 'reading' && (
           <>
