@@ -18,8 +18,9 @@ These still carry the old name on purpose; don't rename them without Kalhara ask
 - The pg_cron job `job-tracker-reminders` (already scheduled) and the calendar event UID suffix `@job-tracker`
   (changing it would duplicate events people have already added).
 - Applied migrations (the comment in the first one).
-The wordmark is baked into `public/og-image.png` (three places) and the navbar of nine screenshots in `public/landing/`:
-the eight view screenshots and `m-insights.webp`.
+The wordmark and the logo are baked into `public/og-image.png` (three places) and the navbar of nine screenshots in
+`public/landing/`: the eight view screenshots and `m-insights.webp`. When the logo went black they were patched in
+place (old tile painted out, new one drawn over it) rather than retaken.
 
 ## Stack
 - **Frontend:** Vite + React 19 + TypeScript, plain CSS (`src/index.css`): light-only, white background, Inter font, design tokens at the top
@@ -114,14 +115,12 @@ web app (PWA) was the alternative considered earlier. `desktop/README.md` has th
 - **Updates:** there is no auto-update (macOS needs a signed app for it). Bump `version` in `desktop/package.json`
   and merge; an installed copy that is older than the site's `DESKTOP_VERSION` shows "Update the desktop app" in the
   compact footer.
-- Icons: `desktop/make-icons.py` (Pillow) draws all three from the logo's measurements: `desktop/build/icon.png` and
+- Icons: `scripts/make-icons.py` (Pillow) draws them from the logo's measurements: `desktop/build/icon.png` and
   `icon.icns` for the Mac (tile and shadow on a 1024px canvas), `icon.ico` for Windows (the tile fills the square,
   each size drawn at its own size). Colours and size are settings at its top; don't edit the image files by hand.
-  Two things are Kalhara's choices (October 2026): the Mac tile is 742px, 10% smaller than Apple's 824px template,
-  because the standard size looked a bit large in the Dock; and the desktop icon is **black with white cards and a
-  black tick**, not the site's blue→violet. The logo on the site, the favicon and the phone icons are still
-  blue→violet. An installed copy only gets a new icon from a new installer (bump `version`), and macOS can keep
-  showing the old one until the Dock restarts.
+  The Mac tile is 742px, 10% smaller than Apple's 824px template: Kalhara found the standard size a bit large in
+  the Dock (October 2026). `desktop/offline.html` has the logo written out as SVG. An installed copy only gets a
+  new icon from a new installer (bump `version`), and macOS can keep showing the old one until the Dock restarts.
 
 ## Privacy & account deletion
 - The repo is (or is about to be) private: GitHub Pro keeps Pages public. Don't link to the repo from the app; contact is by email.
@@ -398,6 +397,7 @@ src/
 supabase/functions/    Edge Functions, deployed by hand (each has a README): `reminders` (email digest) and `job-link`
                        (quick add: index.ts fetches the posting safely, extract.ts reads it, extract.test.ts)
 supabase/migrations/   SQL migrations, run in order
+scripts/make-icons.py  Draws every icon that is a picture file (desktop icons, site PNG icons) from one set of settings
 desktop/               The Windows and Mac app: main.js (window, links, sign-in links, downloads), preload.js (bridge),
                        offline.html, build/ (icons), package.json (version + installer settings)
 ```
@@ -429,9 +429,12 @@ desktop/               The Windows and Mac app: main.js (window, links, sign-in 
 - Board cards: Enter opens, Space picks up. Clicks within 250ms of a drop are ignored (mouseup click). Don't add
   sortable-within-column without a position column in the DB; cards are ordered by the list order.
 - Icons are inline SVGs in `components/Icons.tsx` (no icon library).
-- Logo = stacked kanban cards with a check on a blue→violet tile (Kalhara chose it). The same artwork lives in
-  `Logo` (Icons.tsx), `public/favicon.svg`, `public/icon-192.png`, `public/icon-512.png`, `public/apple-touch-icon.png`;
-  change them together. `public/manifest.webmanifest` makes the site installable to a phone home screen.
+- Logo = stacked kanban cards with a check: **black tile, white cards, black tick** everywhere (Kalhara's choice,
+  October 2026; it was a blue→violet tile before). The interface's own accent stays blue. The artwork is written out
+  as SVG in `Logo` (Icons.tsx), `public/favicon.svg` and `desktop/offline.html`, and drawn by `scripts/make-icons.py`
+  into `public/icon-192.png`, `icon-512.png`, `apple-touch-icon.png` and the desktop icons; change the SVGs and the
+  script's settings together, then run the script. `public/manifest.webmanifest` makes the site installable to a
+  phone home screen.
 
 ## Charts
 - Hand-built HTML/CSS, no chart library. One series per chart in `--series-1` (light `#2a78d6`, dark `#3987e5`, both validated for contrast on the app surfaces).

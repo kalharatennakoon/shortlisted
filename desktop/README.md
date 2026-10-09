@@ -10,7 +10,7 @@ in this folder changes.
 | `preload.js` | The few things the page can ask the app for (`window.shortlistedDesktop`) |
 | `offline.html` | Shown when the site can't be reached |
 | `build/` | App icons (`icon.icns` and `icon.png` for Mac, `icon.ico` for Windows) |
-| `make-icons.py` | Draws those icons. Colours and size are settings at the top: change them, run `python3 make-icons.py` (needs Pillow), release a new version |
+| `../scripts/make-icons.py` | Draws those icons (and the site's). Colours and size are settings at the top: change them, run `python3 scripts/make-icons.py` from the repo root (needs Pillow), release a new version |
 | `package.json` | Version number and installer settings (the `build` section) |
 
 ## Try it on your computer

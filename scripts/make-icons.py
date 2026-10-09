@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
-"""Draws the desktop app's icons: build/icon.png and build/icon.icns (Mac), build/icon.ico (Windows).
+"""Draws every icon that is a picture file, from one set of settings:
 
-    python3 desktop/make-icons.py        (needs Pillow: pip install pillow)
+    desktop/build/icon.png, icon.icns    the Mac app (tile and shadow on a 1024 canvas)
+    desktop/build/icon.ico               the Windows app (the tile fills the square)
+    public/icon-192.png, icon-512.png    the site as an installed web app
+    public/apple-touch-icon.png          the site on an iPhone or iPad home screen
+
+    python3 scripts/make-icons.py        (needs Pillow: pip install pillow)
 
 The artwork is the Shortlisted logo, three stacked cards with a tick on the front one, drawn here from the same
-measurements as the logo on the site (`Logo` in src/components/Icons.tsx, a 512-unit square). To change how the
-icon looks, change the settings just below and run this again; then bump "version" in package.json, because an
-installed copy only gets a new icon from a new installer.
+measurements as the logo on the site (`Logo` in src/components/Icons.tsx, a 512-unit square). The logo is also
+written out by hand in three places that this script does not touch; keep their colours in step with the settings
+below: `Logo` in src/components/Icons.tsx, public/favicon.svg and desktop/offline.html.
+
+After changing the desktop icons, bump "version" in desktop/package.json: an installed copy only gets a new icon
+from a new installer.
 """
 
 from pathlib import Path
@@ -30,11 +38,13 @@ MAC_TILE = 742
 
 UNIT = 512   # the logo's own square
 SS = 4       # draw at four times the size, then scale down, for smooth edges
-OUT = Path(__file__).resolve().parent / 'build'
+ROOT = Path(__file__).resolve().parent.parent
+DESKTOP = ROOT / 'desktop' / 'build'
+SITE = ROOT / 'public'
 
 
-def tile(size: int) -> Image.Image:
-    """The logo tile, `size` pixels square, with rounded corners on a clear background."""
+def tile(size: int, rounded: bool = True) -> Image.Image:
+    """The logo tile, `size` pixels square: with rounded corners on a clear background, or as a plain filled square."""
     n = size * SS
     k = n / UNIT
 
@@ -74,7 +84,8 @@ def tile(size: int) -> Image.Image:
     for px, py in points:
         draw.ellipse([px - width / 2, py - width / 2, px + width / 2, py + width / 2], fill=TICK + (255,))
 
-    # Round the corners
+    if not rounded:
+        return art.convert('RGB').resize((size, size), Image.Resampling.LANCZOS)
     mask = Image.new('L', (n, n), 0)
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, n - 1, n - 1], radius=116 * k, fill=255)
     art.putalpha(mask)
@@ -97,13 +108,16 @@ def mac_icon() -> Image.Image:
 
 def main() -> None:
     mac = mac_icon()
-    mac.save(OUT / 'icon.png', optimize=True)
-    mac.save(OUT / 'icon.icns', format='ICNS')
+    mac.save(DESKTOP / 'icon.png', optimize=True)
+    mac.save(DESKTOP / 'icon.icns', format='ICNS')
     # Windows: each size drawn at its own size, so the small ones stay crisp
     sizes = [256, 128, 64, 48, 32, 24, 16]
     images = [tile(s) for s in sizes]
-    images[0].save(OUT / 'icon.ico', format='ICO', sizes=[(s, s) for s in sizes], append_images=images[1:])
-    print('wrote', ', '.join(str(OUT / name) for name in ('icon.png', 'icon.icns', 'icon.ico')))
+    images[0].save(DESKTOP / 'icon.ico', format='ICO', sizes=[(s, s) for s in sizes], append_images=images[1:])
+    # The site: plain squares with no rounding of their own (phones round the corners themselves)
+    for name, size in (('icon-192.png', 192), ('icon-512.png', 512), ('apple-touch-icon.png', 180)):
+        tile(size, rounded=False).save(SITE / name, optimize=True)
+    print('wrote the desktop icons to', DESKTOP, 'and the site icons to', SITE)
 
 
 if __name__ == '__main__':
