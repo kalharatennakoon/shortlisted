@@ -9,7 +9,8 @@ in this folder changes.
 | `main.js` | The window, the menu, links that open in the browser, `shortlisted://` sign-in links, downloads |
 | `preload.js` | The few things the page can ask the app for (`window.shortlistedDesktop`) |
 | `offline.html` | Shown when the site can't be reached |
-| `build/` | App icons (`icon.icns` for Mac, `icon.ico` for Windows, `icon.png` is their source) |
+| `build/` | App icons (`icon.icns` and `icon.png` for Mac, `icon.ico` for Windows) |
+| `make-icons.py` | Draws those icons. Colours and size are settings at the top: change them, run `python3 make-icons.py` (needs Pillow), release a new version |
 | `package.json` | Version number and installer settings (the `build` section) |
 
 ## Try it on your computer

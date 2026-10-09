@@ -114,11 +114,14 @@ web app (PWA) was the alternative considered earlier. `desktop/README.md` has th
 - **Updates:** there is no auto-update (macOS needs a signed app for it). Bump `version` in `desktop/package.json`
   and merge; an installed copy that is older than the site's `DESKTOP_VERSION` shows "Update the desktop app" in the
   compact footer.
-- Icons: `desktop/build/icon.png` (1024px canvas, the logo tile and its shadow at 742px) and `icon.icns` made from it
-  (Pillow, `Image.save(..., format='ICNS')`) are the Mac icon; `icon.ico` is Windows' (full-bleed tile). The Mac tile
-  is deliberately 10% smaller than Apple's 824px template: Kalhara found the standard size a bit large in the Dock
-  (October 2026). Regenerate all three if the logo changes, keeping that size. An installed copy only gets a new icon
-  from a new installer (bump `version`), and macOS can keep showing the old one until the Dock restarts.
+- Icons: `desktop/make-icons.py` (Pillow) draws all three from the logo's measurements: `desktop/build/icon.png` and
+  `icon.icns` for the Mac (tile and shadow on a 1024px canvas), `icon.ico` for Windows (the tile fills the square,
+  each size drawn at its own size). Colours and size are settings at its top; don't edit the image files by hand.
+  Two things are Kalhara's choices (October 2026): the Mac tile is 742px, 10% smaller than Apple's 824px template,
+  because the standard size looked a bit large in the Dock; and the desktop icon is **black with white cards and a
+  black tick**, not the site's blue→violet. The logo on the site, the favicon and the phone icons are still
+  blue→violet. An installed copy only gets a new icon from a new installer (bump `version`), and macOS can keep
+  showing the old one until the Dock restarts.
 
 ## Privacy & account deletion
 - The repo is (or is about to be) private: GitHub Pro keeps Pages public. Don't link to the repo from the app; contact is by email.
