@@ -205,6 +205,13 @@ export const ShieldIcon = (p: IconProps) => (
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
   </Icon>
 )
+export const TimelineIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="6" cy="6" r="2.5" />
+    <circle cx="6" cy="18" r="2.5" />
+    <path d="M6 8.5v7M12 6h9M12 18h9" />
+  </Icon>
+)
 export const TrashIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" />

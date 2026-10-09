@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import type { Session } from '@supabase/supabase-js'
+import { isAuthRetryableFetchError, type Session } from '@supabase/supabase-js'
 import { desktop, DESKTOP_LINK_FAILED } from './desktop'
 import { SESSION_LOST_EVENT } from './sessionLost'
 import { supabase } from './supabase'
@@ -135,6 +135,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Keep the UI in step with the stored login. The library can clear it without an event (e.g. a failed
   // background token refresh); without this the page looks signed in but every save fails.
+  //
+  // Only a login that is really gone counts. After an hour in the background (a sleeping laptop, the desktop app
+  // left open) the access token has run out, and getSession() then tries to renew it; with no connection yet that
+  // fails and getSession() answers "no session" even though the stored login is untouched and the library will
+  // renew it as soon as it can. Treating that answer as "signed out" sent people to the sign-in page whenever they
+  // came back to the app before the Wi-Fi did, which is what "Your session expired" in the desktop app turned out to be.
   const signedIn = Boolean(state.session)
   useEffect(() => {
     if (!signedIn) return
@@ -144,8 +150,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const check = async () => {
       if (document.visibilityState !== 'visible') return
-      const { data } = await supabase.auth.getSession()
-      if (!data.session) expire()
+      const { data, error } = await supabase.auth.getSession()
+      if (data.session) return
+      // No connection, or the sign-in service is briefly unavailable: keep the login and let the library retry
+      if (error && isAuthRetryableFetchError(error)) return
+      expire()
     }
     window.addEventListener(SESSION_LOST_EVENT, expire)
     document.addEventListener('visibilitychange', check)

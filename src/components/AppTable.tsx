@@ -3,6 +3,7 @@ import { fmtDate } from '../lib/format'
 import { PRIORITIES, STATUSES, type Application } from '../lib/types'
 import { NextBadge, PostingBadge, PostingLink, StatusPill } from './Badges'
 import { DocBadge } from './DocBadge'
+import { StageBadge } from './StageBadge'
 import { ChevronIcon, FlagIcon } from './Icons'
 
 type SortKey = 'name' | 'company' | 'applied_on' | 'platform' | 'priority' | 'next_date' | 'status'
@@ -95,7 +96,7 @@ export default function AppTable({ apps, total, onOpen }: { apps: Application[];
               <td>
                 <span className="role-text">
                   <span className="cell-title">
-                    {a.name} <DocBadge appId={a.id} /> <PostingLink app={a} /> <PostingBadge app={a} />
+                    {a.name} <DocBadge appId={a.id} /> <StageBadge appId={a.id} /> <PostingLink app={a} /> <PostingBadge app={a} />
                   </span>
                   {a.company && <span className="cell-sub show-md">{a.company}</span>}
                 </span>

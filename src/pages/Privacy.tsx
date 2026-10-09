@@ -36,7 +36,8 @@ export default function Privacy() {
           </li>
           <li>
             The <strong>applications you add</strong>: role, company, dates, status, links, notes, next steps (like
-            interview or follow-up dates and times) and a contact email for the employer, if you add one.
+            interview or follow-up dates and times), the stages you record on an application's timeline with your
+            notes about them, and a contact email for the employer, if you add one.
           </li>
           <li>
             Any <strong>documents you upload</strong> (such as CVs and cover letters), up to 5 MB each, and which
@@ -105,7 +106,7 @@ export default function Privacy() {
         <h2>Taking your data with you</h2>
         <p>
           On the Applications page, <strong>Import / export</strong> → <strong>Download CSV</strong> gives you every
-          application you've added, in a file that opens in Excel or Google Sheets. CSV files you import are read in
+          application you've added, with its timeline, in a file that opens in Excel or Google Sheets. CSV files you import are read in
           your browser; only the rows you confirm are saved to your account. Documents can be downloaded one by one
           on the Documents page.
         </p>

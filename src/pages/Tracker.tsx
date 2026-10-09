@@ -9,6 +9,8 @@ import ImportExportDialog from '../components/ImportExportDialog'
 import EmailDialog, { type EmailUse } from '../components/EmailDialog'
 import CalendarDialog from '../components/AddToCalendar'
 import { DocCounts } from '../lib/docCounts'
+import { StageLists } from '../lib/stageLists'
+import { listStages, removeStage, saveStages, stageFromStep, stagesByApplication } from '../lib/stages'
 import { listDocuments, listLinks, setApplicationDocuments } from '../lib/documents'
 import Board from '../components/Board'
 import AppTable from '../components/AppTable'
@@ -28,7 +30,7 @@ import {
   listApplications,
   updateApplication,
 } from '../lib/applications'
-import type { Application, DocumentLink, JobDocument, Status } from '../lib/types'
+import type { Application, DocumentLink, JobDocument, Stage, StageDraft, Status } from '../lib/types'
 
 type View = 'board' | 'table' | 'calendar' | 'stats'
 type Editing = { mode: 'new'; date?: string; status?: Status } | { mode: 'edit'; app: Application } | null
@@ -47,11 +49,15 @@ export default function Tracker() {
   const [view, setView] = useState<View>('board')
   const [query, setQuery] = useState('')
   const [editing, setEditing] = useState<Editing>(null)
+  // Bumped to start the form afresh when it is pointed at a different application while open
+  const [formKey, setFormKey] = useState(0)
   const [ioOpen, setIoOpen] = useState(false)
   const [emailFor, setEmailFor] = useState<Application | null>(null)
   const [calendarFor, setCalendarFor] = useState<Application | null>(null)
   const [docs, setDocs] = useState<JobDocument[]>([])
   const [links, setLinks] = useState<DocumentLink[]>([])
+  // Every application's timeline. null = not available (its migration hasn't been run yet): the app works without it
+  const [stages, setStages] = useState<Stage[] | null>(null)
 
   useEffect(() => {
     listApplications()
@@ -65,6 +71,10 @@ export default function Tracker() {
         setLinks(l)
       })
       .catch(() => {})
+    // The timeline is secondary too
+    listStages()
+      .then(setStages)
+      .catch(() => {})
   }, [])
 
   const docCounts = useMemo(() => {
@@ -73,6 +83,38 @@ export default function Tracker() {
     return m
   }, [links])
   const docIdsFor = (appId: string) => links.filter((l) => l.application_id === appId).map((l) => l.document_id)
+
+  const stageLists = useMemo(() => stagesByApplication(stages ?? []), [stages])
+  const stagesFor = (appId: string) => stageLists.get(appId) ?? []
+
+  /** Stores these stages (new or changed) and takes them into the list. Never removes any. */
+  async function storeStages(appId: string, drafts: StageDraft[] | null) {
+    if (!drafts?.length) return
+    const written = await saveStages(appId, drafts)
+    setStages((all) => [...(all ?? []).filter((s) => !written.some((w) => w.id === s.id)), ...written])
+  }
+
+  /** Removes the one stage the person asked to remove. */
+  async function dropStage(appId: string, stageId: string) {
+    await removeStage(appId, stageId)
+    setStages((all) => all && all.filter((s) => s.id !== stageId))
+  }
+
+  /**
+   * "Done" in Up next. An interview, assessment or call that has happened is part of the application's story, so it
+   * moves into the timeline first (once: a stage already on that day is left alone), then the step is cleared.
+   */
+  async function stepDone(app: Application) {
+    const stage = stages ? stageFromStep(app, stagesFor(app.id)) : null
+    if (stage) {
+      try {
+        await storeStages(app.id, [stage])
+      } catch {
+        // the step is still marked done; the timeline can be filled in by hand
+      }
+    }
+    await patch(app, { next_step: null, next_date: null, ...clearTime(app) })
+  }
 
   async function saveDocuments(appId: string, next: string[]) {
     const current = docIdsFor(appId)
@@ -128,6 +170,7 @@ export default function Tracker() {
   return (
     <AppShell>
       <DocCounts.Provider value={docCounts}>
+      <StageLists.Provider value={stageLists}>
         <header className="page-head">
           <div>
             <h1>Applications</h1>
@@ -183,7 +226,7 @@ export default function Tracker() {
           <UpNext
             apps={apps}
             onOpen={(app) => setEditing({ mode: 'edit', app })}
-            onDone={(app) => patch(app, { next_step: null, next_date: null, ...clearTime(app) })}
+            onDone={stepDone}
             onPlanFollowUp={(app) => patch(app, { next_step: 'Follow up', next_date: todayKey() })}
             onNoResponse={(app) => patch(app, { status: 'No Response' })}
             onEmail={setEmailFor}
@@ -214,29 +257,40 @@ export default function Tracker() {
 
       {editing && (
         <ApplicationForm
+          key={formKey}
+          others={apps}
+          onOpenOther={(app) => {
+            setEditing({ mode: 'edit', app })
+            setFormKey((k) => k + 1)
+          }}
           initial={editing.mode === 'edit' ? editing.app : undefined}
           initialDate={editing.mode === 'new' ? editing.date : undefined}
           initialStatus={editing.mode === 'new' ? editing.status : undefined}
           onClose={() => setEditing(null)}
           docs={docs}
           initialDocIds={editing.mode === 'edit' ? docIdsFor(editing.app.id) : []}
+          initialStages={stages ? (editing.mode === 'edit' ? stagesFor(editing.app.id) : []) : undefined}
+          onStageSave={(appId, stage) => storeStages(appId, [stage])}
+          onStageRemove={dropStage}
           onDocUploaded={(doc) => setDocs((ds) => [doc, ...ds])}
-          onSave={async (input, documentIds) => {
+          onSave={async (input, documentIds, timeline) => {
             if (editing.mode === 'edit') {
               const updated = await updateApplication(editing.app.id, input)
               setApps((xs) => xs.map((x) => (x.id === updated.id ? updated : x)))
               await saveDocuments(updated.id, documentIds)
+              // only when the form began as a new application and switched to editing after a failed first save (below)
+              await storeStages(updated.id, timeline)
             } else {
               const created = await createApplication(input)
               setApps((xs) => [created, ...xs])
-              if (documentIds.length) {
-                // If attaching fails, the application exists: switch to editing it so a retry doesn't duplicate it
-                try {
-                  await saveDocuments(created.id, documentIds)
-                } catch (e) {
-                  setEditing({ mode: 'edit', app: created })
-                  throw e
-                }
+              // If attaching documents or saving the timeline fails, the application exists: switch to editing it so a
+              // retry doesn't duplicate it
+              try {
+                if (documentIds.length) await saveDocuments(created.id, documentIds)
+                await storeStages(created.id, timeline)
+              } catch (e) {
+                setEditing({ mode: 'edit', app: created })
+                throw e
               }
             }
           }}
@@ -246,6 +300,7 @@ export default function Tracker() {
                   await deleteApplication(editing.app.id)
                   setApps((xs) => xs.filter((x) => x.id !== editing.app.id))
                   setLinks((ls) => ls.filter((l) => l.application_id !== editing.app.id)) // links cascade in the DB
+                  setStages((all) => all && all.filter((s) => s.application_id !== editing.app.id)) // and so do stages
                 }
               : undefined
           }
@@ -267,12 +322,14 @@ export default function Tracker() {
       {ioOpen && (
         <ImportExportDialog
           apps={apps}
+          stages={stageLists}
           onClose={() => setIoOpen(false)}
           // Reload rather than merge: keeps the server's applied_on ordering, and after a partial
           // failure it shows exactly what was saved
           onImported={() => listApplications().then(setApps).catch((e) => setError(errorMessage(e)))}
         />
       )}
+      </StageLists.Provider>
       </DocCounts.Provider>
     </AppShell>
   )

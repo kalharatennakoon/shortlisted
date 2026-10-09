@@ -7,26 +7,49 @@ import TimePicker from './TimePicker'
 import EmailDialog, { type EmailUse } from './EmailDialog'
 import CvCheckDialog from './CvCheckDialog'
 import QuickAdd from './QuickAdd'
+import DuplicateNote from './DuplicateNote'
+import Timeline from './Timeline'
 import { CV_ANALYZER_NAME } from '../lib/cvCheck'
 import { eventFor } from '../lib/calendarLinks'
 import { fillForm, fillNote, type FilledField, type JobLinkAnswer, type LastFill } from '../lib/jobLink'
+import { findByLink, findDuplicate } from '../lib/duplicates'
+import { sortStages, stepFromStage, toDraft } from '../lib/stages'
 import { addDays, timeKey, todayKey } from '../lib/dates'
 import { appUrl } from '../lib/supabase'
 import { postingState, postingSummary, postingUrl } from '../lib/posting'
-import { NEXT_STEPS, PLATFORMS, PRIORITIES, STATUSES, type Application, type ApplicationInput, type JobDocument } from '../lib/types'
+import {
+  NEXT_STEPS, PLATFORMS, PRIORITIES, STATUSES, type Application, type ApplicationInput, type JobDocument, type Stage, type StageDraft,
+} from '../lib/types'
 
 interface Props {
   initial?: Application
   initialDate?: string
   /** Status for a new application (e.g. added from a board column) */
   initialStatus?: ApplicationInput['status']
-  /** Saves the application and makes its attached documents match `documentIds` */
-  onSave: (input: ApplicationInput, documentIds: string[]) => Promise<void>
+  /**
+   * Saves the application and makes its attached documents match `documentIds`. `stages` is the timeline of an
+   * application that is being created, to store once it exists; null otherwise (the timeline of an existing
+   * application is stored stage by stage through onStageSave, not here).
+   */
+  onSave: (input: ApplicationInput, documentIds: string[], stages: StageDraft[] | null) => Promise<void>
+  /**
+   * The application's timeline as stored. Left out while it is still loading, or when the timeline isn't available:
+   * the section is hidden until it is known. It may arrive after the form has opened.
+   */
+  initialStages?: Stage[]
+  /** Store one stage of an existing application straight away */
+  onStageSave?: (applicationId: string, stage: StageDraft) => Promise<void>
+  /** Remove one stage of an existing application straight away */
+  onStageRemove?: (applicationId: string, stageId: string) => Promise<void>
   docs: JobDocument[]
   initialDocIds?: string[]
   onDocUploaded: (doc: JobDocument) => void
   onDelete?: () => Promise<void>
   onClose: () => void
+  /** Every application in the list, to warn when a new one repeats one of them */
+  others?: Application[]
+  /** Leave this (new) application and open another one instead */
+  onOpenOther?: (app: Application) => void
 }
 
 const QUICK_DATES: [string, number][] = [
@@ -50,12 +73,30 @@ const empty: ApplicationInput = {
 
 export default function ApplicationForm({
   initial, initialDate, initialStatus, onSave, onDelete, onClose, docs, initialDocIds = [], onDocUploaded,
+  others = [], onOpenOther, initialStages, onStageSave, onStageRemove,
 }: Props) {
   const [form, setForm] = useState<ApplicationInput>(
     // todayKey() here, not in `empty`: a tab left open overnight would otherwise default to yesterday
     initial ?? { ...empty, applied_on: initialDate ?? todayKey(), status: initialStatus ?? empty.status },
   )
   const [docIds, setDocIds] = useState<string[]>(initialDocIds)
+  // Attached documents load separately and can arrive after the form has opened. Take them in when they do, so they
+  // are shown, and so saving the form (which makes the attachments match this list) can't detach ones it never saw.
+  const [seenDocIds, setSeenDocIds] = useState<string[]>(initialDocIds)
+  const lateDocIds = initialDocIds.filter((d) => !seenDocIds.includes(d))
+  if (lateDocIds.length) {
+    setSeenDocIds([...seenDocIds, ...lateDocIds])
+    setDocIds([...new Set([...docIds, ...lateDocIds])])
+  }
+
+  // Timeline. An application that exists stores each stage as it is saved; one being created holds its stages here
+  // until it exists. Which of the two this form is doesn't change while it is open.
+  const [startedNew] = useState(!initial)
+  // null until the stored timeline is known (it loads separately and can arrive after the form has opened)
+  const [stages, setStages] = useState<StageDraft[] | null>(() => (initialStages ? sortStages(initialStages).map(toDraft) : null))
+  if (stages === null && initialStages) setStages(sortStages(initialStages).map(toDraft))
+  /** A stage is open in the Timeline with changes that haven't been saved */
+  const [stagePending, setStagePending] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [emailOpen, setEmailOpen] = useState(false)
@@ -89,6 +130,13 @@ export default function ApplicationForm({
     return () => clearTimeout(timer)
   }, [justFilled])
   const lit = (field: FilledField) => (justFilled.includes(field) ? 'just-filled' : undefined)
+
+  // A new application that repeats one already in the list (same posting, or same role at the same company).
+  // "Keep both" quietens the warning for that application only; another match would still be shown.
+  const [keptBoth, setKeptBoth] = useState<string[]>([])
+  const found = initial ? null : findDuplicate(form, others)
+  const duplicate = found && !keptBoth.includes(found.app.id) ? found : null
+  const keepBoth = (app: Application) => setKeptBoth((ids) => (ids.includes(app.id) ? ids : [...ids, app.id]))
 
   function onLinkRead(answer: JobLinkAnswer) {
     const fill = fillForm(formNow.current, answer, lastFill.current)
@@ -147,7 +195,12 @@ export default function ApplicationForm({
       if (clean[key] == null && initial?.[key] === undefined) delete clean[key]
     }
     if ('next_time' in clean) clean.next_time = clean.next_date ? timeKey(clean.next_time) : null
-    run(() => onSave(clean, docIds))
+    // A stage still open in the Timeline would be lost when the form closes: have it saved or cancelled first
+    if (stagePending) {
+      setError('Timeline: press "Save stage" (or Cancel) on the stage you are editing first.')
+      return
+    }
+    run(() => onSave(clean, docIds, startedNew ? stages : null))
   }
 
   return (
@@ -161,7 +214,18 @@ export default function ApplicationForm({
           </button>
         </header>
 
-        {!initial && <QuickAdd onAnswer={onLinkRead} disabled={busy} />}
+        {!initial && (
+          <QuickAdd
+            onAnswer={onLinkRead}
+            findExisting={(link) => findByLink(link, others)}
+            onOpenExisting={onOpenOther}
+            onAddAgain={keepBoth}
+            disabled={busy}
+          />
+        )}
+        {duplicate && (
+          <DuplicateNote duplicate={duplicate} onOpen={() => onOpenOther?.(duplicate.app)} onKeep={() => keepBoth(duplicate.app)} />
+        )}
 
         <section className="form-section" aria-labelledby="sec-job">
           <h3 id="sec-job">The job</h3>
@@ -267,6 +331,30 @@ export default function ApplicationForm({
             </div>
           )}
         </section>
+
+        {stages && (
+          <Timeline
+            stages={stages}
+            onChange={setStages}
+            onPending={setStagePending}
+            store={
+              !startedNew && initial && onStageSave && onStageRemove
+                ? { save: (stage) => onStageSave(initial.id, stage), remove: (stageId) => onStageRemove(initial.id, stageId) }
+                : undefined
+            }
+            status={form.status}
+            onStatus={(status) => set('status', status)}
+            canPlan={!form.next_step && !form.next_date}
+            onPlan={(stage) =>
+              setForm((f) => {
+                const step = stepFromStage(stage)
+                // next_time is a later column (see types.ts): only touch it when there is a time to keep or to clear
+                const { next_time, ...rest } = step
+                return { ...f, ...rest, ...(next_time || f.next_time ? { next_time } : {}) }
+              })
+            }
+          />
+        )}
 
         <section className="form-section" aria-labelledby="sec-posting">
           <h3 id="sec-posting">

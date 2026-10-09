@@ -5,12 +5,14 @@ import { errorMessage } from '../lib/errors'
 import { fmtDate } from '../lib/format'
 import { todayKey } from '../lib/dates'
 import { applicationsToCsv, parseImport, templateCsv, type ImportPreview } from '../lib/importExport'
-import type { Application } from '../lib/types'
+import type { Application, Stage } from '../lib/types'
 import { StatusPill } from './Badges'
 import { DownloadIcon, FileIcon, UploadIcon, XIcon } from './Icons'
 
 interface Props {
   apps: Application[]
+  /** application id -> its timeline, for the export */
+  stages?: Map<string, Stage[]>
   onImported: () => void
   onClose: () => void
 }
@@ -23,7 +25,7 @@ type Step =
   | { kind: 'preview'; fileName: string; preview: ImportPreview }
   | { kind: 'done'; count: number }
 
-export default function ImportExportDialog({ apps, onImported, onClose }: Props) {
+export default function ImportExportDialog({ apps, stages, onImported, onClose }: Props) {
   const [step, setStep] = useState<Step>({ kind: 'choose' })
   const [includeDupes, setIncludeDupes] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -144,7 +146,7 @@ export default function ImportExportDialog({ apps, onImported, onClose }: Props)
                   type="button"
                   className="secondary"
                   disabled={apps.length === 0}
-                  onClick={() => download(`job-applications-${todayKey()}.csv`, applicationsToCsv(apps))}
+                  onClick={() => download(`job-applications-${todayKey()}.csv`, applicationsToCsv(apps, stages))}
                 >
                   <DownloadIcon />
                   Download CSV

@@ -24,6 +24,7 @@ import { fmtDate, statusClass } from '../lib/format'
 import { STATUSES, type Application, type Status } from '../lib/types'
 import { NextBadge, PostingBadge, PostingLink } from './Badges'
 import { DocBadge } from './DocBadge'
+import { StageBadge } from './StageBadge'
 import { CalendarIcon, FlagIcon, PlusIcon } from './Icons'
 
 interface Props {
@@ -75,6 +76,7 @@ function CardBody({ app }: { app: Application }) {
             {fmtDate(app.applied_on)}
           </span>
           <DocBadge appId={app.id} />
+          <StageBadge appId={app.id} />
           <PostingLink app={app} />
         </span>
         {app.priority && (
