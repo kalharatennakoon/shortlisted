@@ -10,7 +10,7 @@ and link-preview tags, manifest, reminder emails, calendar events, docs.
 The GitHub repo is `kalharatennakoon/shortlisted` (renamed from `shortlistd`, before that `job-tracker`), so the site is
 at `https://kalharatennakoon.github.io/shortlisted/`. That address is repeated in Supabase's Site URL / Redirect URLs,
 the reminders function's `APP_URL` secret, the canonical + Open Graph URLs in `index.html`, `SHORTLISTED_URL` in the
-`cv-analyzer-lk` repo (`src/lib/handoff.ts`) and `LIVE_URL` in `desktop/main.js` (installed desktop apps open it, so
+`strongcv` repo (`src/lib/handoff.ts`) and `LIVE_URL` in `desktop/main.js` (installed desktop apps open it, so
 changing it means a new installer and everyone reinstalling); change them together.
 GitHub Pages does not redirect the old `/shortlistd/` or `/job-tracker/` addresses.
 These still carry the old name on purpose; don't rename them without Kalhara asking:
@@ -200,18 +200,21 @@ Email drafts and add to calendar (migration `20261002120000_next_time_contact.sq
   the reader's device. `index.ts` selects `next_time` and retries without it on Postgres error 42703 (column missing).
   The function has to be **redeployed** after any change to those two files (see its README).
 
-Check my CV (hand-off to CV Analyzer LK, Kalhara's other app at `https://cv-analyzer-lk.vercel.app/`; no schema change):
+Check my CV (hand-off to StrongCV, Kalhara's other app at `https://strongcv.vercel.app/`; no schema change):
+- StrongCV was "CV Analyzer LK" until October 2026 (repo `cv-analyzer-lk`, site `cv-analyzer-lk.vercel.app`). Its name and
+  address are `CV_ANALYZER_NAME` and `CV_ANALYZER_URL` in `lib/cvCheck.ts`; those identifiers and `VITE_CV_ANALYZER_URL`
+  describe what the tool does, so they kept their names.
 - The chip at the foot of the form's Documents section opens `components/CvCheckDialog.tsx`: which CV (attached ones
-  first, then the rest of the library; only kind CV, PDF/DOCX/TXT, up to 4 MB, which are CV Analyzer LK's limits), the
+  first, then the rest of the library; only kind CV, PDF/DOCX/TXT, up to 4 MB, which are StrongCV's limits), the
   role and the job link. "Open" makes a signed link to the CV that lasts `CV_LINK_SECONDS` (5 minutes) and opens the
   other site in a new tab. Role, link and CV come from the form as it is, saved or not.
 - Everything goes in the URL **fragment** (`#from=shortlisted&position=…&jobUrl=…&cv=…&cvName=…`, built by
   `lib/cvCheck.ts`), never the query string: fragments aren't sent to servers, so the CV link stays out of Vercel's
-  logs. The receiving end is `src/lib/handoff.ts` in the `cv-analyzer-lk` repo, which only accepts a CV link to a
+  logs. The receiving end is `src/lib/handoff.ts` in the `strongcv` repo, which only accepts a CV link to a
   Supabase Storage signed URL for the `documents` bucket; change the parameter names in both repos together.
   It accepts `from=shortlisted` and the earlier `from=shortlistd`, so a tab still running the old copy keeps working.
 - The new tab is opened inside the click (pop-up blockers), its `opener` is cleared before it is pointed at the other
-  site, and a blocked tab falls back to a plain link. CV Analyzer LK only fills its form in; the person presses Analyse.
+  site, and a blocked tab falls back to a plain link. StrongCV only fills its form in; the person presses Analyse.
 - This is the one place a document leaves the app, so the privacy page has a "Checking your CV" section. Keep it accurate.
 
 Quick add from a job link (function `supabase/functions/job-link/`, see its README; no schema change):
@@ -306,7 +309,7 @@ src/
   lib/documents.ts     Document library: upload (validate, upload file, insert row, clean up on failure), list, links,
                        setApplicationDocuments(diff), open/download via signed URL, delete, guessKind(file name)
   lib/docCounts.ts     React context: application id -> attached document count (for board/table badges)
-  lib/cvCheck.ts       Pure: CV Analyzer LK hand-off (cvChoices, cvProblem, unreadableCvs, handoffUrl) + its address and limits
+  lib/cvCheck.ts       Pure: StrongCV hand-off (cvChoices, cvProblem, unreadableCvs, handoffUrl) + its address and limits
   lib/reminders.ts     Reminder settings (get/save), sendTestEmail + unsubscribe via supabase.functions.invoke('reminders')
   lib/account.ts       deleteMyAccount(): delete Storage files, then rpc; one-time 'account deleted' notice
   lib/config.ts        Owner name, contact email (jobtracker.app.lk@gmail.com), APP_VERSION, privacy date,
@@ -378,7 +381,7 @@ src/
                        default export CalendarDialog used from Up next
   components/AttachedDocuments.tsx  Documents section (`.form-section`) in the form: attached list, pick from library, upload new;
                        `children` go at its foot (the "Check my CV" chip)
-  components/CvCheckDialog.tsx  "Check your CV": CV picker, role, job link, Open CV Analyzer LK. Portalled, `.modal-top`, not a <form>
+  components/CvCheckDialog.tsx  "Check your CV": CV picker, role, job link, Open StrongCV. Portalled, `.modal-top`, not a <form>
   components/DocumentUpload.tsx  Upload button + inline confirm (name, kind). Not a <form>: it sits inside the app form
   components/DocBadge.tsx  Paperclip + count on board cards and table rows
   pages/Documents.tsx  #/documents library: upload, open, download, rename/change type, delete (inline confirm),
@@ -459,7 +462,7 @@ desktop/               The Windows and Mac app: main.js (window, links, sign-in 
 - [x] Follow-up email templates (follow-up, thank-you, check-in) opened in the user's own mail, plus a contact email
 - [x] Add to calendar for next steps (Google Calendar link, .ics file), with an optional time
 - [x] Time in reminder emails
-- [x] "Check my CV" button that hands the CV, role and job link to CV Analyzer LK
+- [x] "Check my CV" button that hands the CV, role and job link to StrongCV
 - [x] Desktop app for Windows and Mac (Electron window onto the site, installers built by GitHub Actions)
 - [x] Quick add: paste a job posting's link and the form is filled in from it (Edge Function `job-link`)
 - [x] "You've already added this posting" warning (same link, or same role at the same company)

@@ -1026,7 +1026,7 @@ a.chip:focus-visible { outline: none; box-shadow: var(--focus); }
 .cal-actions { flex-wrap: wrap; }
 .cal-actions > * { flex: 1 1 150px; }
 
-/* ---------- Check my CV (hand-off to CV Analyzer LK) ---------- */
+/* ---------- Check my CV (hand-off to StrongCV) ---------- */
 .cv-check-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--border); }
 .cv-check-row button.chip { display: inline-flex; align-items: center; gap: 5px; }
 .cv-check-row button.chip svg { color: var(--accent); }

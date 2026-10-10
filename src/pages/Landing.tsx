@@ -521,13 +521,13 @@ export default function Landing() {
                 className="wide"
                 icon={<SparkleIcon size={20} />}
                 title="Check your CV against the job"
-                text="Send the CV you attached, the role and the job link to CV Analyzer LK, a free companion tool, in a couple of taps. It shows how well your CV matches the job and what to improve before you apply."
+                text="Send the CV you attached, the role and the job link to StrongCV, a free companion tool, in a couple of taps. It shows how well your CV matches the job and what to improve before you apply."
               >
                 <div className="lp-mini lp-mail lp-cv" aria-hidden="true">
                   <div className="lp-cv-head">
                     <span className="cal-event-icon"><SparkleIcon size={18} /></span>
                     <span>
-                      <strong>CV Analyzer LK</strong>
+                      <strong>StrongCV</strong>
                       <span className="muted small block">Compares your CV with the job</span>
                     </span>
                   </div>
@@ -544,7 +544,7 @@ export default function Landing() {
                     <span>careers.lakemont.example</span>
                   </div>
                   <div className="lp-mail-foot">
-                    <span className="lp-fake-btn primary">Open CV Analyzer LK</span>
+                    <span className="lp-fake-btn primary">Open StrongCV</span>
                   </div>
                 </div>
               </Tile>
