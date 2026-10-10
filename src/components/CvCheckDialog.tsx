@@ -20,7 +20,7 @@ interface Props {
 }
 
 /**
- * "Check my CV": shows what will be handed to CV Analyzer LK (the CV, the role, the job link), then opens it in a
+ * "Check my CV": shows what will be handed to StrongCV (the CV, the role, the job link), then opens it in a
  * new tab with its form filled in. Nothing is analysed there until the person presses Analyse.
  * Not a <form> and always portalled: it opens on top of the application form.
  */
