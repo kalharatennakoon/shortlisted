@@ -19,7 +19,7 @@ Opt-in per user in Profile → Email reminders (table `public.reminder_settings`
 3. **Secrets** (Edge Functions → Secrets):
    | Name | Value |
    |---|---|
-   | `SMTP_USER` | `jobtracker.app.lk@gmail.com` |
+   | `SMTP_USER` | `kalharatennakoonmck@gmail.com` |
    | `SMTP_PASS` | a Gmail **app password** for that account (the one already used for Supabase Auth SMTP works) |
    | `CRON_SECRET` | a long random string (e.g. `openssl rand -hex 24`) |
    | `APP_URL` | `https://kalharatennakoon.github.io/shortlisted/` |

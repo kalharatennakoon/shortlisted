@@ -12,7 +12,7 @@ const path = require('node:path')
 
 /** The site. Change it here if the address changes, then ship a new installer (see README.md). */
 const LIVE_URL = 'https://kalharatennakoon.github.io/shortlisted/'
-const CONTACT_EMAIL = 'jobtracker.app.lk@gmail.com'
+const CONTACT_EMAIL = 'kalharatennakoonmck@gmail.com'
 /** Links that start with shortlisted:// open this app (registered by the installers). */
 const PROTOCOL = 'shortlisted'
 
