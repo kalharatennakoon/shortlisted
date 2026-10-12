@@ -14,7 +14,6 @@ the reminders function's `APP_URL` secret, the canonical + Open Graph URLs in `i
 changing it means a new installer and everyone reinstalling); change them together.
 GitHub Pages does not redirect the old `/shortlistd/` or `/job-tracker/` addresses.
 These still carry the old name on purpose; don't rename them without Kalhara asking:
-- The contact mailbox `jobtracker.app.lk@gmail.com` (also the reminders' SMTP account).
 - The pg_cron job `job-tracker-reminders` (already scheduled) and the calendar event UID suffix `@job-tracker`
   (changing it would duplicate events people have already added).
 - Applied migrations (the comment in the first one).
@@ -312,7 +311,7 @@ src/
   lib/cvCheck.ts       Pure: StrongCV hand-off (cvChoices, cvProblem, unreadableCvs, handoffUrl) + its address and limits
   lib/reminders.ts     Reminder settings (get/save), sendTestEmail + unsubscribe via supabase.functions.invoke('reminders')
   lib/account.ts       deleteMyAccount(): delete Storage files, then rpc; one-time 'account deleted' notice
-  lib/config.ts        Owner name, contact email (jobtracker.app.lk@gmail.com), APP_VERSION, privacy date,
+  lib/config.ts        Owner name, contact email (kalharatennakoonmck@gmail.com; also the SMTP sender), APP_VERSION, privacy date,
                        DESKTOP_VERSION (null until an installer is published) + DESKTOP_DOWNLOADS
   lib/desktop.ts       Desktop app bridge (`desktop`, `isDesktop`) and `desktopReturn`: a link the app asked for,
                        opened in a browser
