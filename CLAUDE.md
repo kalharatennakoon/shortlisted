@@ -22,7 +22,7 @@ The wordmark and the logo are baked into `public/og-image.png` (three places) an
 place (old tile painted out, new one drawn over it) rather than retaken.
 
 ## Stack
-- **Frontend:** Vite + React 19 + TypeScript, plain CSS (`src/index.css`): light-only, white background, Inter font, design tokens at the top
+- **Frontend:** Vite + React 19 + TypeScript, plain CSS (`src/index.css`): light by default with an optional dark theme, Inter font, design tokens at the top
 - **Routing:** `react-router-dom` with `HashRouter`, because GitHub Pages has no server-side rewrites
 - **Auth + database:** Supabase (email/password auth, Postgres). The browser talks to Supabase directly with the anon key.
 - **Hosting:** GitHub Pages, deployed by `.github/workflows/deploy.yml` on every push to `main`
@@ -73,7 +73,7 @@ Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
 - Feature tiles: eight on a 6-column grid (wide 4 + 2, 2 + wide 4, wide 4 + 2, then two `half` tiles 3 + 3). The
   "Check your CV" tile carries the "New in v3" tag (`isNew`; the label is in `Tile`) and a static preview (`.lp-cv`,
   built on `.lp-mail`); the calendar and email tiles keep their previews (`.lp-calmock`, `.lp-mail`). At the next
-  version, move the tag to what is new then and change the label. `APP_VERSION` in `lib/config.ts` is 3.0.
+  version, move the tag to what is new then and change the label. `APP_VERSION` in `lib/config.ts` is 3.1.
 - Landing classes are prefixed `lp-`. Motion is deliberate, not scattered: one page-load rise in the hero, the view tour
   (tab progress line is the timer: its `animationend` shows the next view; pauses on hover/off-screen, stops on click,
   Pause/Play button), the roles ticker, and the application card moving through the stages. All of it stops under
@@ -347,6 +347,7 @@ src/
   lib/config.ts        Owner name, contact email (kalharatennakoonmck@gmail.com; also the SMTP sender), APP_VERSION, privacy date,
                        DESKTOP_VERSION (null until an installer is published) + DESKTOP_DOWNLOADS
   lib/desktopReleases.ts  What's new in each desktop app version (DESKTOP_RELEASES), releasesBetween
+  lib/theme.ts         Light / dark / system choice: applied at load, useTheme(), passed to the desktop app
   lib/desktop.ts       Desktop app bridge (`desktop`, `isDesktop`) and `desktopReturn`: a link the app asked for,
                        opened in a browser
   lib/emailTemplates.ts  Pure: EMAIL_TEMPLATES, defaultTemplate (thank-you once interviewed), buildEmail, isEmail,
@@ -426,6 +427,7 @@ src/
   components/AppShell.tsx  Signed-in frame: navbar (logo → home, AccountMenu) + main + Footer. Publishes the navbar
                        height as the --nav-h CSS variable (ResizeObserver) for sticky elements
   components/AccountMenu.tsx  Avatar menu (display name): Profile & settings, Privacy, Sign out
+  components/AppearanceCard.tsx  Profile card: Light / Dark / Match system
   components/RemindersCard.tsx  Profile card: on/off switch, send hour, Monday follow-ups, time zone, test email
   components/DeleteAccountDialog.tsx  Typed-DELETE confirm; opened from the Profile page
   components/PasswordInput.tsx  Password field with show/hide eye toggle (use for every password input)
@@ -455,7 +457,16 @@ desktop/               The Windows and Mac app: main.js (window, links, sign-in 
 - `vite.config.ts` reads `VITE_BASE` so assets resolve under `/<repo-name>/` on Pages.
 
 ## UI
-- Light theme only (Kalhara asked for a white background); don't reintroduce `prefers-color-scheme` dark styles.
+- Light by default, dark on request (Kalhara added the choice in October 2026, site v3.1 / desktop 1.0.7; it was
+  light-only before). Profile & settings → Appearance (`components/AppearanceCard.tsx`): Light / Dark / Match system,
+  kept in the browser (`localStorage` `shortlisted-theme`, `lib/theme.ts`), not the account. A script at the top of
+  `index.html` sets `<html data-theme="dark">` before the page draws (no white flash); it repeats the key and rules.
+  The dark values are one block at the end of `index.css`: the tokens, then a dark twin of every rule that has a
+  colour of its own. **A new rule with a hard-coded colour needs its twin there**; prefer tokens. Text on an
+  `--accent` fill uses `--on-accent` (dark text on the lighter dark-theme blue). Landing screenshots and
+  `og-image.png` stay light. In the desktop app the page passes the choice on (`setTheme` on the bridge, from 1.0.7):
+  `main.js` sets `nativeTheme.themeSource` (title bar, window background, `offline.html`'s dark styles) and keeps
+  it in `theme.json` for the next start.
 - `html, body` use `overflow-x: clip`, not `hidden`: hidden turns body into a scroll container and silently breaks
   every `position: sticky` (navbar, table header).
 - The Stats badge is `.stat-chip` (`button.chip` is the form's). Kalhara doesn't want company icons/monograms on cards or rows.
@@ -477,7 +488,7 @@ desktop/               The Windows and Mac app: main.js (window, links, sign-in 
   phone home screen.
 
 ## Charts
-- Hand-built HTML/CSS, no chart library. One series per chart in `--series-1` (light `#2a78d6`, dark `#3987e5`, both validated for contrast on the app surfaces).
+- Hand-built HTML/CSS, no chart library. One series per chart in `--series-1` (light `#2a78d6`, dark theme `#3987e5`, both validated for contrast on the app surfaces).
 - "Response rate" = share with status Interviewed, Offered, Accepted or Rejected (any reply counts). Defined in `lib/stats.ts`.
 - Every chart has a hover tooltip and a "Show table" fallback; keep both when adding charts.
 - Exception to one series: the status split bar uses the `.status-*` colours, always with its labelled legend.

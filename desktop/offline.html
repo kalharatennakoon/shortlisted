@@ -32,6 +32,17 @@
       a[hidden] { display: none; }
       a { display: inline-block; margin-top: 16px; font-size: 13px; color: #2563eb; text-decoration: none; }
       a:hover { text-decoration: underline; }
+      /* Dark when the site's theme is dark: the app passes it on as the system setting (setTheme in main.js). */
+      @media (prefers-color-scheme: dark) {
+        body { color: #e6e8ec; background: #0f1217; }
+        main { background: #1b2029; border-color: #2a303a; box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.5); }
+        svg { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14); }
+        p { color: #8e96a3; }
+        button { color: #0b1220; background: #5b9bff; }
+        button:hover { background: #7aafff; }
+        button:focus-visible { box-shadow: 0 0 0 3px rgba(91, 155, 255, 0.35); }
+        a { color: #5b9bff; }
+      }
     </style>
   </head>
   <body>

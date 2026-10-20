@@ -39,6 +39,9 @@ contextBridge.exposeInMainWorld('shortlistedDesktop', {
     return () => ipcRenderer.removeListener('desktop:update-state', listener)
   },
 
+  /** The theme chosen in the site: 'light', 'dark' or 'system'. Colours the window and title bar. */
+  setTheme: (theme) => ipcRenderer.send('desktop:theme', String(theme)),
+
   /** Used by the offline page: load the site again. */
   retry: () => ipcRenderer.send('desktop:retry'),
 })

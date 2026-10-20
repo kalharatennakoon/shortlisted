@@ -1,5 +1,6 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import AppearanceCard from '../components/AppearanceCard'
 import AppShell from '../components/AppShell'
 import DeleteAccountDialog from '../components/DeleteAccountDialog'
 import DesktopAppCard from '../components/DesktopAppCard'
@@ -205,6 +206,7 @@ export default function Profile() {
         </section>
 
         <DetailsCard />
+        <AppearanceCard />
         <RemindersCard />
         <PasswordCard />
         <DesktopAppCard />

@@ -6,7 +6,7 @@
 // links that come back from the browser (shortlisted://), downloads, updates of the app itself, and
 // a page for when the site can't be reached.
 
-const { app, BrowserWindow, Menu, ipcMain, net, screen, session, shell } = require('electron')
+const { app, BrowserWindow, Menu, ipcMain, nativeTheme, net, screen, session, shell } = require('electron')
 const { execFile, spawn } = require('node:child_process')
 const crypto = require('node:crypto')
 const fs = require('node:fs')
@@ -115,10 +115,45 @@ function saveWindowState(win) {
   }
 }
 
+// ---------- light or dark ----------
+// The site has the setting (Profile & settings, src/lib/theme.ts) and tells the app through `setTheme`. The app
+// keeps it so the next start opens in the same colours: the window's own background (seen before the page has
+// drawn), the title bar, and offline.html (which follows the system setting this changes).
+
+const THEMES = ['light', 'dark', 'system']
+const themeFile = () => path.join(app.getPath('userData'), 'theme.json')
+/** The page background in each theme, `--bg` in src/index.css. */
+const windowBackground = () => (nativeTheme.shouldUseDarkColors ? '#0f1217' : '#ffffff')
+
+/** Light unless the site said otherwise, like the site itself. Call once the app is ready. */
+function restoreTheme() {
+  let theme = 'light'
+  try {
+    const saved = JSON.parse(fs.readFileSync(themeFile(), 'utf8')).theme
+    if (THEMES.includes(saved)) theme = saved
+  } catch {
+    // never set
+  }
+  nativeTheme.themeSource = theme
+  nativeTheme.on('updated', () => {
+    for (const win of BrowserWindow.getAllWindows()) win.setBackgroundColor(windowBackground())
+  })
+}
+
+function setTheme(theme) {
+  if (!THEMES.includes(theme) || nativeTheme.themeSource === theme) return
+  nativeTheme.themeSource = theme // 'updated' recolours the windows
+  try {
+    fs.writeFileSync(themeFile(), JSON.stringify({ theme }))
+  } catch {
+    // it still applies until the app quits
+  }
+}
+
 /** Shared by the main window and any second window the app opens. */
 const windowOptions = () => ({
   title: 'Shortlisted',
-  backgroundColor: '#ffffff',
+  backgroundColor: windowBackground(),
   autoHideMenuBar: true, // Windows: no menu bar under the title (Alt shows it); macOS ignores this
   webPreferences: {
     preload: path.join(__dirname, 'preload.js'),
@@ -562,6 +597,9 @@ if (!app.requestSingleInstanceLock()) {
     pendingAuth = null
     return auth
   })
+  ipcMain.on('desktop:theme', (event, theme) => {
+    if (trusted(event)) setTheme(theme)
+  })
   ipcMain.on('desktop:retry', (event) => {
     if (trusted(event)) loadSite(event.sender)
   })
@@ -600,6 +638,7 @@ if (!app.requestSingleInstanceLock()) {
       allow(permission === 'clipboard-sanitized-write'))
     session.defaultSession.on('will-download', handleDownload)
     cleanUpAfterUpdate()
+    restoreTheme()
 
     Menu.setApplicationMenu(buildMenu())
     createWindow()

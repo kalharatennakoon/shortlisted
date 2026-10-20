@@ -13,6 +13,12 @@ export interface DesktopRelease {
  */
 export const DESKTOP_RELEASES: DesktopRelease[] = [
   {
+    version: '1.0.7',
+    notes: [
+      'Dark mode: choose Light, Dark or Match system in Profile & settings. The window and title bar follow it.',
+    ],
+  },
+  {
     version: '1.0.6',
     notes: [
       'Updates on a Mac go in reliably: a copy left behind by an earlier update no longer stops the next one.',

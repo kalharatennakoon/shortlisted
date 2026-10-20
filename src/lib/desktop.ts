@@ -31,6 +31,8 @@ export interface DesktopBridge {
   /** Updates of the app itself. Missing before 1.0.3: those copies are updated by downloading the installer. */
   update?: (action: DesktopUpdateAction) => Promise<DesktopUpdateState | null>
   onUpdateState?: (callback: (state: DesktopUpdateState) => void) => () => void
+  /** The theme chosen in the site (lib/theme.ts), for the window and title bar. Missing before 1.0.7. */
+  setTheme?: (theme: 'light' | 'dark' | 'system') => void
 }
 
 export const desktop: DesktopBridge | undefined = (window as Window & { shortlistedDesktop?: DesktopBridge })

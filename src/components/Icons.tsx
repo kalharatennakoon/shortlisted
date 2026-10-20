@@ -184,6 +184,17 @@ export const KeyIcon = (p: IconProps) => (
     <path d="m10.7 12.3 9.3-9.3M17 6l3 3M14 9l2 2" />
   </Icon>
 )
+export const SunIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+  </Icon>
+)
+export const MoonIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z" />
+  </Icon>
+)
 export const ArrowLeftIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M19 12H5M12 19l-7-7 7-7" />

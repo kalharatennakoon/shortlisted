@@ -2,7 +2,7 @@
 export const OWNER_NAME = 'Kalhara Tennakoon'
 export const CONTACT_EMAIL = 'kalharatennakoonmck@gmail.com'
 export const PRIVACY_UPDATED = '12 October 2026'
-export const APP_VERSION = '3.0'
+export const APP_VERSION = '3.1'
 
 // Windows and Mac app (the `desktop/` folder). The installers are built by `.github/workflows/desktop.yml` and
 // copied next to the site by the deploy workflow, which also sets the version. Null until the first one is
