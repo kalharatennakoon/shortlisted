@@ -52,7 +52,11 @@ export default function Footer({ compact = false }: { compact?: boolean }) {
         <span>© {year} Shortlisted</span>
         <span>Built by {OWNER_NAME} in Sri&nbsp;Lanka</span>
       </p>
-      <span className="version" title="App version">v{APP_VERSION}</span>
+      {/* In the desktop app, its own window has a version of its own (desktop/package.json) */}
+      <span className="version" title="App version">
+        v{APP_VERSION}
+        {desktop?.version && ` · Desktop app ${desktop.version}`}
+      </span>
     </div>
   )
 

@@ -120,6 +120,9 @@ web app (PWA) was the alternative considered earlier. `desktop/README.md` has th
   on load and when the window comes back into view, at most every ten minutes (`latestDesktopVersion`): a Mac
   window stays open for days, as closing it doesn't quit the app. The installer the link downloads is saved to
   Downloads and opened (from 1.0.2; 1.0.1 shows "Save as"), like an `.ics` file.
+- Two version numbers on purpose: `APP_VERSION` (the site, "v3.0") and the app's own `version` (only bumped when
+  `desktop/` changes). Inside the app the footer shows both ("v3.0 · Desktop app 1.0.2"); Kalhara chose that over
+  renumbering the app or locking the two together (October 2026).
 - Icons: `scripts/make-icons.py` (Pillow) draws them from the logo's measurements: `desktop/build/icon.png` and
   `icon.icns` for the Mac (tile and shadow on a 1024px canvas), `icon.ico` for Windows (the tile fills the square,
   each size drawn at its own size). Colours and size are settings at its top; don't edit the image files by hand.
