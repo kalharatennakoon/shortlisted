@@ -12,6 +12,8 @@ export interface DesktopUpdateState {
   /** Bytes so far and in all, while downloading (total is also there while available) */
   received?: number
   total?: number
+  /** When the last check found no newer version (ms since 1970) */
+  checkedAt?: number
   /** Which step failed */
   error?: 'check' | 'download' | 'install'
 }

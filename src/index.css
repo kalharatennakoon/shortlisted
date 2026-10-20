@@ -419,7 +419,29 @@ a.link-button {
 a.link-button.primary { background: var(--accent); color: #fff; box-shadow: var(--shadow-sm); }
 a.link-button.primary:hover { background: var(--accent-hover); }
 a.link-button:focus-visible { outline: none; box-shadow: var(--focus); }
-@media (prefers-reduced-motion: reduce) { .update-progress > span { transition: none; } }
+.update-status { display: flex; align-items: flex-start; gap: 12px; min-height: 40px; }
+.update-status-icon {
+  width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex: none;
+  font-weight: 700; font-size: 15px; background: var(--canvas); color: var(--muted);
+}
+.update-status.ok .update-status-icon { background: #ecfdf5; color: var(--success); }
+.update-status.new .update-status-icon { background: var(--accent-soft); color: var(--accent); }
+.update-status.bad .update-status-icon { background: #fef2f2; color: var(--danger); }
+.update-status-text { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; padding-top: 4px; }
+.update-status-text .update-progress-wrap { margin-top: 8px; }
+.update-status-title { font-weight: 600; }
+.update-status.bad .update-status-title { color: var(--danger); }
+.update-spinner { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #bfd3fe; border-top-color: var(--accent); animation: quick-add-spin .7s linear infinite; }
+.update-notes { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--canvas); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; animation: fade .2s ease-out; }
+.update-notes h3 { font-size: 13px; font-weight: 600; }
+.update-notes-version { font-size: 12.5px; font-weight: 600; color: var(--text-2); margin-top: 4px; }
+.update-notes ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+.update-notes li { font-size: 13.5px; line-height: 1.45; color: var(--text-2); }
+@media (prefers-reduced-motion: reduce) {
+  .update-progress > span { transition: none; }
+  .update-spinner { animation-duration: 2s; }
+  .update-notes { animation: none; }
+}
 .danger-zone { border-color: #fecaca; }
 .menu-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .brand { color: var(--text); }

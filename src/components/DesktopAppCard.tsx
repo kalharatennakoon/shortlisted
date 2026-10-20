@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { DESKTOP_DOWNLOADS } from '../lib/config'
 import {
   desktop,
@@ -9,7 +9,8 @@ import {
   type DesktopUpdateState,
   type PublishedInstaller,
 } from '../lib/desktop'
-import { MonitorIcon } from './Icons'
+import { releasesBetween } from '../lib/desktopReleases'
+import { CheckIcon, DownloadIcon, MonitorIcon } from './Icons'
 
 const megabytes = (bytes = 0) => `${(bytes / 1024 / 1024).toFixed(1)} MB`
 const isMac = desktop?.platform === 'darwin'
@@ -35,89 +36,143 @@ export default function DesktopAppCard() {
   )
 }
 
+/** A check that answers at once would flash "Checking…" for a frame: it stays up at least this long. */
+const MIN_CHECKING_MS = 900
+
+/**
+ * The update state from desktop/main.js, steadied for showing: a check's answer waits until "Checking…" has been
+ * on screen for MIN_CHECKING_MS, so the card doesn't flicker between messages.
+ */
+function useUpdateState() {
+  const [state, setState] = useState<DesktopUpdateState | null>(null)
+  const checkStarted = useRef(0)
+  const timer = useRef<number | undefined>(undefined)
+
+  const show = useCallback((next: DesktopUpdateState) => {
+    window.clearTimeout(timer.current)
+    if (next.status === 'checking') {
+      if (!checkStarted.current) checkStarted.current = Date.now()
+      setState(next)
+      return
+    }
+    const wait = checkStarted.current + MIN_CHECKING_MS - Date.now()
+    const apply = () => {
+      checkStarted.current = 0
+      setState(next)
+    }
+    if (checkStarted.current && wait > 0) timer.current = window.setTimeout(apply, wait)
+    else apply()
+  }, [])
+
+  const startCheck = useCallback(() => {
+    show({ status: 'checking', current: desktop!.version })
+    void desktop!.update!('check').then((s) => s && show(s))
+  }, [show])
+
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+  return { state, show, startCheck }
+}
+
 function Updater() {
-  const [update, setUpdate] = useState<DesktopUpdateState | null>(null)
+  const { state: update, show, startCheck } = useUpdateState()
 
   useEffect(() => {
     const bridge = desktop!
-    const stop = bridge.onUpdateState!(setUpdate)
+    const stop = bridge.onUpdateState!(show)
     // Check on opening the page, unless something is already under way
     void bridge.update!('state').then((s) => {
-      if (!s || ['idle', 'up-to-date', 'error'].includes(s.status)) void bridge.update!('check')
-      else setUpdate(s)
+      if (!s || ['idle', 'up-to-date', 'error'].includes(s.status)) startCheck()
+      else show(s)
     })
     return stop
-  }, [])
+  }, [show, startCheck])
 
-  const act = (action: 'check' | 'download' | 'cancel' | 'install') => void desktop!.update!(action).then((s) => s && setUpdate(s))
+  const act = (action: 'download' | 'cancel' | 'install') => void desktop!.update!(action).then((s) => s && show(s))
   const status = update?.status ?? 'checking'
+  const installed = desktop!.version
+  const notes = update?.latest && ['available', 'downloading', 'ready'].includes(status)
+    ? <WhatsNew installed={installed} latest={update.latest} />
+    : null
 
-  let message: ReactNode
+  let tone: StatusTone = 'busy'
+  let title: ReactNode
+  let detail: ReactNode = null
+  let body: ReactNode = null
   let actions: ReactNode = null
   switch (status) {
     case 'checking':
     case 'idle':
-      message = <p className="muted">Checking for updates…</p>
+      title = 'Checking for updates…'
+      detail = `You have version ${installed}.`
+      actions = <button type="button" className="secondary" disabled>Checking…</button>
       break
     case 'up-to-date':
-      message = <p className="success">You have the latest version.</p>
-      actions = <button type="button" className="secondary" onClick={() => act('check')}>Check for updates</button>
+      tone = 'ok'
+      title = 'You have the latest version'
+      detail = `Version ${installed}${update?.checkedAt ? ` · checked at ${checkedTime(update.checkedAt)}` : ''}.`
+      actions = <button type="button" className="secondary" onClick={startCheck}>Check for updates</button>
       break
     case 'available':
-      message = (
-        <p>
-          Version <strong>{update?.latest}</strong> is available ({megabytes(update?.total)}).
-        </p>
-      )
+      tone = 'new'
+      title = <>Version {update?.latest} is available</>
+      detail = `You have version ${installed} · download ${megabytes(update?.total)}.`
       actions = <button type="button" className="primary" onClick={() => act('download')}>Download update</button>
       break
     case 'downloading':
-      message = (
-        <DownloadProgress version={update?.latest} received={update?.received} total={update?.total} />
-      )
+      tone = 'new'
+      title = <>Downloading version {update?.latest}…</>
+      body = <DownloadProgress received={update?.received} total={update?.total} />
       actions = <button type="button" className="secondary" onClick={() => act('cancel')}>Cancel</button>
       break
     case 'ready':
-      message = (
-        <p>
-          Version <strong>{update?.latest}</strong> is downloaded. Shortlisted will close, update and open again.
-        </p>
-      )
+      tone = 'new'
+      title = <>Version {update?.latest} is ready to install</>
+      detail = 'Shortlisted will close, update and open again.'
       actions = <button type="button" className="primary" onClick={() => act('install')}>Install and restart</button>
       break
     case 'installing':
-      message = <p className="muted">Installing… Shortlisted will open again in a moment.</p>
+      title = 'Installing…'
+      detail = 'Shortlisted will open again in a moment.'
+      actions = <button type="button" className="secondary" disabled>Installing…</button>
       break
     case 'manual':
-      message = isMac ? (
-        <p>
-          The update couldn't be put in place by itself, so it's open in Finder: drag <strong>Shortlisted</strong> into
+      tone = 'new'
+      title = <>Version {update?.latest} is downloaded</>
+      detail = isMac ? (
+        <>
+          It couldn't be put in place by itself, so it's open in Finder: drag <strong>Shortlisted</strong> into
           Applications, choose <strong>Replace</strong>, then quit Shortlisted and open it again.
-        </p>
+        </>
       ) : (
-        <p>The installer is open: follow its steps, then open Shortlisted again.</p>
+        'The installer is open: follow its steps, then open Shortlisted again.'
       )
       break
     case 'unsupported':
-      message = <p className="muted">Updates aren't available on this system.</p>
+      tone = 'bad'
+      title = "Updates aren't available on this system"
       break
     case 'error':
-      message = (
-        <p className="error" role="alert">
-          {update?.error === 'download'
-            ? "The download didn't finish. Check your connection and try again."
-            : update?.error === 'install'
-              ? 'Only an installed copy of Shortlisted can update itself.'
-              : "Couldn't check for updates. Check your connection and try again."}
-        </p>
-      )
-      actions = <button type="button" className="secondary" onClick={() => act('check')}>Try again</button>
+      tone = 'bad'
+      title =
+        update?.error === 'download'
+          ? "The download didn't finish"
+          : update?.error === 'install'
+            ? "This copy can't update itself"
+            : "Couldn't check for updates"
+      detail =
+        update?.error === 'install'
+          ? 'Only an installed copy of Shortlisted can update itself.'
+          : 'Check your connection and try again.'
+      actions = <button type="button" className="secondary" onClick={startCheck}>Try again</button>
       break
   }
 
   return (
     <>
-      <div aria-live="polite">{message}</div>
+      <UpdateStatus tone={tone} title={title} detail={detail} alert={status === 'error'}>
+        {body}
+      </UpdateStatus>
+      {notes}
       {actions && (
         <div className="settings-actions">
           <span className="spacer" />
@@ -128,11 +183,57 @@ function Updater() {
   )
 }
 
+type StatusTone = 'busy' | 'ok' | 'new' | 'bad'
+
+const checkedTime = (at: number) => new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+
+/** One steady row: an icon for the kind of news, a short title and a line under it. */
+function UpdateStatus({ tone, title, detail, alert, children }: {
+  tone: StatusTone
+  title: ReactNode
+  detail?: ReactNode
+  alert?: boolean
+  children?: ReactNode
+}) {
+  return (
+    <div className={`update-status ${tone}`} role={alert ? 'alert' : 'status'} aria-live="polite">
+      <span className="update-status-icon" aria-hidden="true">
+        {tone === 'busy' ? <span className="update-spinner" /> : tone === 'ok' ? <CheckIcon size={15} /> : tone === 'new' ? <DownloadIcon size={15} /> : '!'}
+      </span>
+      <div className="update-status-text">
+        <p className="update-status-title">{title}</p>
+        {detail && <p className="muted small">{detail}</p>}
+        {children}
+      </div>
+    </div>
+  )
+}
+
+/** "What's new" for every version between the installed one and the one on offer, newest first. */
+function WhatsNew({ installed, latest }: { installed: string; latest: string }) {
+  const releases = releasesBetween(installed, latest)
+  if (!releases.length) return null
+  const several = releases.length > 1
+  return (
+    <div className="update-notes">
+      <h3>What's new</h3>
+      {releases.map((r) => (
+        <div key={r.version}>
+          {several && <p className="update-notes-version">Version {r.version}</p>}
+          <ul>
+            {r.notes.map((note) => <li key={note}>{note}</li>)}
+          </ul>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function DownloadProgress({ version, received = 0, total = 0 }: { version?: string; received?: number; total?: number }) {
   const percent = total ? Math.min(100, Math.round((received / total) * 100)) : 0
   return (
     <div className="update-progress-wrap">
-      <p>Downloading version {version}…</p>
+      {version && <p>Downloading version {version}…</p>}
       <div className="update-progress" role="progressbar" aria-label="Download progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
         <span style={{ width: `${percent}%` }} />
       </div>
@@ -229,6 +330,7 @@ function ManualUpdate() {
             Version <strong>{state.version}</strong> is available. Download the installer and {steps}. Wait until it
             has finished downloading before opening it.
           </p>
+          <WhatsNew installed={desktop!.version} latest={state.version} />
           {actionsRow(<a className="link-button primary" href={fileUrl} download>Download version {state.version}</a>)}
         </>
       )
@@ -239,6 +341,7 @@ function ManualUpdate() {
             Version <strong>{state.installer.version}</strong> is available ({megabytes(state.installer.size)}). This
             copy can't install it by itself: download it here, then {steps}. After that, updates install right here.
           </p>
+          <WhatsNew installed={desktop!.version} latest={state.installer.version} />
           {actionsRow(
             <button type="button" className="primary" onClick={() => void download(state.installer)}>
               Download version {state.installer.version}

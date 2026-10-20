@@ -139,6 +139,11 @@ web app (PWA) was the alternative considered earlier. `desktop/README.md` has th
   `lib/desktop.ts`, repeated in `main.js`): the first version compared with `!==`, and a freshly installed 1.0.1
   was told to update because its window still had the copy of the site that offered 1.0.0. The card reads the
   published version live (`latest.json`, `version.txt` via `latestDesktopVersion`), never the one built into the page.
+- **The card's states:** "Checking for updates…" (held on screen at least 0.9 s, `useUpdateState`, so a fast answer
+  doesn't flicker), "You have the latest version" (with the time checked), or "Version … is available" with
+  **What's new** under it. The notes are `DESKTOP_RELEASES` in `lib/desktopReleases.ts`, one entry per version in
+  plain words: add the new version there in the same change that bumps `version` in `desktop/package.json`. Every
+  version between the installed one and the one on offer is listed, newest first; a version with no entry shows none.
 - **Releases:** each version keeps its own GitHub release, `desktop-v<version>` (from 1.0.3; Kalhara wants old
   ones kept); `desktop-latest` is replaced each time and is what `deploy.yml` serves from `/downloads/`.
 - Two version numbers on purpose: `APP_VERSION` (the site, "v3.0") and the app's own `version` (only bumped when
@@ -341,6 +346,7 @@ src/
   lib/account.ts       deleteMyAccount(): delete Storage files, then rpc; one-time 'account deleted' notice
   lib/config.ts        Owner name, contact email (kalharatennakoonmck@gmail.com; also the SMTP sender), APP_VERSION, privacy date,
                        DESKTOP_VERSION (null until an installer is published) + DESKTOP_DOWNLOADS
+  lib/desktopReleases.ts  What's new in each desktop app version (DESKTOP_RELEASES), releasesBetween
   lib/desktop.ts       Desktop app bridge (`desktop`, `isDesktop`) and `desktopReturn`: a link the app asked for,
                        opened in a browser
   lib/emailTemplates.ts  Pure: EMAIL_TEMPLATES, defaultTemplate (thank-you once interviewed), buildEmail, isEmail,
