@@ -2,6 +2,22 @@
 // links to other sites open in the person's browser, and anything that comes back by email or from Google
 // arrives in that browser, not in the app, and has to be handed over.
 
+/** Where an update of the desktop app has got to (`updateState` in desktop/main.js). */
+export interface DesktopUpdateState {
+  status: 'idle' | 'checking' | 'up-to-date' | 'available' | 'downloading' | 'ready' | 'installing' | 'manual' | 'error' | 'unsupported'
+  /** The installed version */
+  current: string
+  /** The version on offer, once there is one */
+  latest?: string
+  /** Bytes so far and in all, while downloading (total is also there while available) */
+  received?: number
+  total?: number
+  /** Which step failed */
+  error?: 'check' | 'download' | 'install'
+}
+
+export type DesktopUpdateAction = 'state' | 'check' | 'download' | 'cancel' | 'install'
+
 /** What the desktop app adds to the page (`desktop/preload.js`). Undefined in a normal browser. */
 export interface DesktopBridge {
   platform: string
@@ -10,6 +26,9 @@ export interface DesktopBridge {
   openExternal: (url: string) => Promise<boolean>
   /** A sign-in link came back from the browser; `code` is null when it was no use. Returns "stop listening". */
   onAuthCallback: (callback: (auth: { code: string | null; flowId: string | null }) => void) => () => void
+  /** Updates of the app itself. Missing before 1.0.3: those copies are updated by downloading the installer. */
+  update?: (action: DesktopUpdateAction) => Promise<DesktopUpdateState | null>
+  onUpdateState?: (callback: (state: DesktopUpdateState) => void) => () => void
 }
 
 export const desktop: DesktopBridge | undefined = (window as Window & { shortlistedDesktop?: DesktopBridge })

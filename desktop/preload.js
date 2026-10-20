@@ -29,6 +29,16 @@ contextBridge.exposeInMainWorld('shortlistedDesktop', {
     return () => ipcRenderer.removeListener('desktop:auth-callback', listener)
   },
 
+  /** Updates of the app itself: 'state', 'check', 'download', 'cancel' or 'install'. Answers with the state. */
+  update: (action) => ipcRenderer.invoke('desktop:update', String(action)),
+
+  /** Calls back with the new state as an update is checked, downloaded and installed. Returns "stop listening". */
+  onUpdateState: (callback) => {
+    const listener = (_event, state) => callback(state)
+    ipcRenderer.on('desktop:update-state', listener)
+    return () => ipcRenderer.removeListener('desktop:update-state', listener)
+  },
+
   /** Used by the offline page: load the site again. */
   retry: () => ipcRenderer.send('desktop:retry'),
 })

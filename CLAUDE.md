@@ -111,15 +111,24 @@ web app (PWA) was the alternative considered earlier. `desktop/README.md` has th
 - **Not signed** with paid certificates (Kalhara is keeping the app free for now), so Windows SmartScreen and macOS
   Gatekeeper warn on first open; the download card's "Installing it for the first time" explains both. No Windows or
   Apple logos on the buttons (same reasoning as the calendar buttons).
-- **Updates:** there is no auto-update (macOS needs a signed app for it). Bump `version` in `desktop/package.json`
-  and merge; an installed copy that is older than the site's `DESKTOP_VERSION` shows "Update the desktop app" in the
-  compact footer. Older, never just different (`isNewerVersion` in `lib/desktop.ts`): the first version compared
-  with `!==`, and a freshly installed 1.0.1 was told to update because its window still had the copy of the site
-  that offered 1.0.0 (pages are cached for ten minutes, and an open window keeps its page until it is reloaded).
-  Because of that, the footer also reads `downloads/version.txt` (kept there by `deploy.yml`) without the cache,
-  on load and when the window comes back into view, at most every ten minutes (`latestDesktopVersion`): a Mac
-  window stays open for days, as closing it doesn't quit the app. The installer the link downloads is saved to
-  Downloads and opened (from 1.0.2; 1.0.1 shows "Save as"), like an `.ics` file.
+- **Updates (from 1.0.3): in the app, from Profile & settings → "Desktop app"** (`components/DesktopAppCard.tsx`;
+  Kalhara asked for check / download with progress / install and reopen, October 2026). The work is in `main.js`
+  ("updates of the app itself"): it reads `downloads/latest.json` (version, and per system the file, size and
+  SHA-256, written by `desktop.yml`), downloads the installer to a temp folder and checks size and checksum.
+  Mac: mounts the `.dmg` out of sight, copies the app beside the old one, `codesign --verify`, swaps the two and
+  relaunches (the old copy is removed at the next start); if the app's folder isn't writable or it runs from the
+  `.dmg`, it opens the `.dmg` in Finder instead. Windows: runs the setup with `--updated /S --force-run`, which
+  closes the app, installs and reopens it. The page can only send `check`/`download`/`cancel`/`install`; the
+  address and checksum never come from it. macOS's own updater (Squirrel) isn't used: it needs a signed app.
+  Copies before 1.0.3 have no `update` on the bridge: the card offers the installer to download once.
+- **Update notice:** the compact footer links to that card when the installed copy is older than the published
+  version. Older, never just different (`isNewerVersion` in `lib/desktop.ts`, repeated in `main.js`): the first
+  version compared with `!==`, and a freshly installed 1.0.1 was told to update because its window still had the
+  copy of the site that offered 1.0.0 (pages are cached for ten minutes, and an open window keeps its page until
+  it is reloaded). So the footer also reads `downloads/version.txt` without the cache, on load and when the window
+  comes back into view, at most every ten minutes (`latestDesktopVersion`): a Mac window stays open for days.
+- **Releases:** each version keeps its own GitHub release, `desktop-v<version>` (from 1.0.3; Kalhara wants old
+  ones kept); `desktop-latest` is replaced each time and is what `deploy.yml` serves from `/downloads/`.
 - Two version numbers on purpose: `APP_VERSION` (the site, "v3.0") and the app's own `version` (only bumped when
   `desktop/` changes). Inside the app the footer shows both ("v3.0 · Desktop app 1.0.2"); Kalhara chose that over
   renumbering the app or locking the two together (October 2026).

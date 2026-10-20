@@ -2,6 +2,7 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import AppShell from '../components/AppShell'
 import DeleteAccountDialog from '../components/DeleteAccountDialog'
+import DesktopAppCard from '../components/DesktopAppCard'
 import { ArrowLeftIcon, KeyIcon, TrashIcon, UserIcon } from '../components/Icons'
 import PasswordInput from '../components/PasswordInput'
 import RemindersCard from '../components/RemindersCard'
@@ -206,6 +207,7 @@ export default function Profile() {
         <DetailsCard />
         <RemindersCard />
         <PasswordCard />
+        <DesktopAppCard />
 
         <section className="card settings-card danger-zone">
           <header className="settings-head">

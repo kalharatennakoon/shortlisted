@@ -40,8 +40,11 @@ installer needs Windows, or the workflow.
 
 ## Releasing a new version
 
-Change `version` in `package.json`, then merge. Installed copies see the new number on the site and show
-"Update the desktop app" in the footer.
+Change `version` in `package.json`, then merge. The workflow publishes the installers as `desktop-v<version>`
+(kept) and `desktop-latest` (replaced), and the site serves them from `/downloads/` with `latest.json`.
+Installed copies show "Update the desktop app" in the footer, which leads to Profile & settings → Desktop app:
+there the app checks, downloads (with progress), installs and opens again (1.0.3 and later; older copies
+download the installer once).
 
 ## Good to know
 

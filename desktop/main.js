@@ -3,12 +3,15 @@
 // Shortlisted for Windows and Mac: a window onto the live site, so the desktop app is always the
 // current version and nothing has to be shipped again when the web app changes.
 // What this file adds: its own window and icon, links that open in the person's browser, sign-in
-// links that come back from the browser (shortlisted://), downloads, and a page for when the
-// site can't be reached.
+// links that come back from the browser (shortlisted://), downloads, updates of the app itself, and
+// a page for when the site can't be reached.
 
-const { app, BrowserWindow, Menu, ipcMain, screen, session, shell } = require('electron')
+const { app, BrowserWindow, Menu, ipcMain, net, screen, session, shell } = require('electron')
+const { execFile, spawn } = require('node:child_process')
+const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
+const { promisify } = require('node:util')
 
 /** The site. Change it here if the address changes, then ship a new installer (see README.md). */
 const LIVE_URL = 'https://kalharatennakoon.github.io/shortlisted/'
@@ -222,21 +225,14 @@ function uniquePath(dir, name) {
   return candidate
 }
 
-/** Saved to Downloads and opened: calendar files, and this app's own installers (from "Update the desktop app"). */
-const OPEN_AFTER_DOWNLOAD = ['.ics', '.dmg', '.exe']
-
 /**
  * CSV exports and documents get the usual "Save as" window. A calendar file (.ics) is what
  * "Add to calendar" makes: save it to Downloads and open it, so the event lands in the person's
- * calendar app in one click. An installer comes from the site's own /downloads/ ("Update the desktop
- * app"): opening it shows the Mac's drag-to-Applications window or starts the Windows setup.
- * If nothing on the computer opens the file, show it in its folder instead.
+ * calendar app in one click. If nothing on the computer opens .ics files, show the file instead.
  */
 function handleDownload(_event, item) {
   const name = path.basename(item.getFilename())
-  const ext = path.extname(name).toLowerCase()
-  if (!OPEN_AFTER_DOWNLOAD.includes(ext)) return
-  if (ext !== '.ics' && !isAppUrl(item.getURL())) return // an installer from anywhere else is just saved
+  if (path.extname(name).toLowerCase() !== '.ics') return
   const folder = app.getPath('downloads')
   try {
     fs.mkdirSync(folder, { recursive: true })
@@ -250,6 +246,201 @@ function handleDownload(_event, item) {
     const problem = await shell.openPath(target)
     if (problem) shell.showItemInFolder(target)
   })
+}
+
+// ---------- updates of the app itself ----------
+//
+// The site is always current; only this window around it needs updating. The deploy publishes
+// downloads/latest.json next to the installers (see .github/workflows/desktop.yml):
+//   { "version": "1.0.3", "mac": { "file", "size", "sha256" }, "windows": { … } }
+// The page can only ask for "check", "download", "cancel" or "install": the address, the file and its
+// checksum come from that list, never from the page.
+//
+// There is no paid certificate, so macOS's own updater (which needs one) can't be used. Instead:
+// - Mac: open the .dmg out of sight, copy the new app next to the old one, swap the two, start again.
+//   When the app's folder can't be written to (or it runs from the .dmg itself) the .dmg is opened in
+//   Finder for the person to drag across, as on first install.
+// - Windows: run the downloaded setup silently; it closes this copy, installs and opens the new one.
+
+const run = promisify(execFile)
+const UPDATE_KEYS = { darwin: 'mac', win32: 'windows' }
+const updateDir = () => path.join(app.getPath('temp'), 'shortlisted-update')
+
+/** True when `published` is later than `installed` (the same rule as isNewerVersion in src/lib/desktop.ts). */
+function isNewerVersion(published, installed) {
+  const numbers = (v) => /^v?(\d+(?:\.\d+)*)/i.exec(String(v).trim())?.[1].split('.').map(Number)
+  const a = numbers(published)
+  const b = numbers(installed)
+  if (!a || !b) return false
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const d = (a[i] ?? 0) - (b[i] ?? 0)
+    if (d !== 0) return d > 0
+  }
+  return false
+}
+
+/** What the settings page shows. `error` says which step failed: check, download or install. */
+let updateState = { status: 'idle', current: app.getVersion() }
+/** The version on offer: { version, url, size, sha256 } from latest.json */
+let offered = null
+let downloaded = null // path of the checked installer
+let downloadAbort = null
+
+function setUpdate(next) {
+  updateState = { current: app.getVersion(), ...next }
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send('desktop:update-state', updateState)
+  }
+  return updateState
+}
+
+async function checkForUpdate() {
+  if (['checking', 'downloading', 'ready', 'installing'].includes(updateState.status)) return updateState
+  const key = UPDATE_KEYS[process.platform]
+  if (!key) return setUpdate({ status: 'unsupported' })
+  setUpdate({ status: 'checking' })
+  try {
+    const list = new URL('downloads/latest.json', APP_URL)
+    list.searchParams.set('t', String(Date.now())) // past every cache
+    const res = await net.fetch(list.href, { cache: 'no-store' })
+    if (!res.ok) throw new Error(`latest.json: ${res.status}`)
+    const data = await res.json()
+    const entry = data?.[key]
+    const ok =
+      typeof data?.version === 'string' && /^\d+(\.\d+){0,3}$/.test(data.version) &&
+      /^[\w.-]+$/.test(entry?.file ?? '') && /^[a-f0-9]{64}$/.test(entry?.sha256 ?? '') &&
+      Number.isSafeInteger(entry?.size) && entry.size > 0
+    if (!ok) throw new Error('latest.json is not in the expected shape')
+    if (!isNewerVersion(data.version, app.getVersion())) return setUpdate({ status: 'up-to-date', checkedAt: Date.now() })
+    offered = { version: data.version, url: new URL(`downloads/${entry.file}`, APP_URL).href, size: entry.size, sha256: entry.sha256, file: entry.file }
+    return setUpdate({ status: 'available', latest: offered.version, total: offered.size })
+  } catch (error) {
+    console.error('Update check failed:', error)
+    return setUpdate({ status: 'error', error: 'check' })
+  }
+}
+
+async function downloadUpdate() {
+  if (!offered || updateState.status !== 'available') return
+  const update = offered
+  const controller = new AbortController()
+  downloadAbort = controller
+  const dir = updateDir()
+  const target = path.join(dir, update.file)
+  let out = null
+  setUpdate({ status: 'downloading', latest: update.version, received: 0, total: update.size })
+  try {
+    await fs.promises.rm(dir, { recursive: true, force: true })
+    await fs.promises.mkdir(dir, { recursive: true })
+    const res = await net.fetch(`${update.url}?v=${update.version}`, { cache: 'no-store', signal: controller.signal })
+    if (!res.ok || !res.body) throw new Error(`download: ${res.status}`)
+    const hash = crypto.createHash('sha256')
+    out = fs.createWriteStream(target)
+    let received = 0
+    let shown = 0
+    for await (const chunk of res.body) {
+      received += chunk.length
+      if (received > update.size) throw new Error('download is larger than expected')
+      hash.update(chunk)
+      if (!out.write(chunk)) await new Promise((resolve) => out.once('drain', resolve))
+      if (Date.now() - shown > 120) {
+        shown = Date.now()
+        setUpdate({ status: 'downloading', latest: update.version, received, total: update.size })
+      }
+    }
+    await new Promise((resolve, reject) => out.end((error) => (error ? reject(error) : resolve())))
+    if (received !== update.size || hash.digest('hex') !== update.sha256) throw new Error('download is damaged')
+    downloaded = target
+    setUpdate({ status: 'ready', latest: update.version })
+  } catch (error) {
+    out?.destroy()
+    await fs.promises.rm(target, { force: true }).catch(quiet)
+    if (controller.signal.aborted) setUpdate({ status: 'available', latest: update.version, total: update.size })
+    else {
+      console.error('Update download failed:', error)
+      setUpdate({ status: 'error', error: 'download', latest: update.version })
+    }
+  } finally {
+    downloadAbort = null
+  }
+}
+
+const writable = (p) => {
+  try {
+    fs.accessSync(p, fs.constants.W_OK)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** /Applications/Shortlisted.app, worked out from the running program inside it. */
+const macBundle = () => path.resolve(process.execPath, '../../..')
+const asideOf = (bundle, what) => path.join(path.dirname(bundle), `.${path.basename(bundle, '.app')}-${what}.app`)
+
+async function installMac(dmg) {
+  const bundle = macBundle()
+  const replaceable =
+    bundle.endsWith('.app') && !bundle.startsWith('/Volumes/') && !bundle.includes('/AppTranslocation/') &&
+    writable(path.dirname(bundle)) && writable(bundle)
+  if (!replaceable) {
+    await shell.openPath(dmg)
+    return setUpdate({ status: 'manual', latest: offered?.version })
+  }
+  const mount = path.join(updateDir(), 'mount')
+  const staged = asideOf(bundle, 'update')
+  await fs.promises.rm(staged, { recursive: true, force: true })
+  await run('hdiutil', ['attach', dmg, '-nobrowse', '-readonly', '-noautoopen', '-mountpoint', mount])
+  try {
+    const name = (await fs.promises.readdir(mount)).find((f) => f.endsWith('.app'))
+    if (!name) throw new Error('no app in the disk image')
+    await run('ditto', [path.join(mount, name), staged])
+  } finally {
+    await run('hdiutil', ['detach', mount, '-force']).catch(quiet)
+  }
+  await run('codesign', ['--verify', '--deep', '--strict', staged]) // copied whole and unchanged
+  // Swap: the running copy keeps working from the files it has open; the old one is removed at the next start.
+  const old = asideOf(bundle, 'old')
+  await fs.promises.rm(old, { recursive: true, force: true })
+  await fs.promises.rename(bundle, old)
+  try {
+    await fs.promises.rename(staged, bundle)
+  } catch (error) {
+    await fs.promises.rename(old, bundle)
+    throw error
+  }
+  app.relaunch() // the same path, now the new version
+  app.exit(0)
+  return updateState
+}
+
+function installWindows(exe) {
+  // The installer's own switches: an update, no questions, open the app when done.
+  spawn(exe, ['--updated', '/S', '--force-run'], { detached: true, stdio: 'ignore' }).unref()
+  setTimeout(() => app.quit(), 300)
+  return updateState
+}
+
+async function installUpdate() {
+  if (updateState.status !== 'ready' || !downloaded) return updateState
+  if (!app.isPackaged) return setUpdate({ status: 'error', error: 'install', latest: offered?.version })
+  setUpdate({ status: 'installing', latest: offered?.version })
+  try {
+    return process.platform === 'darwin' ? await installMac(downloaded) : installWindows(downloaded)
+  } catch (error) {
+    console.error('Update install failed:', error)
+    // The download is still good: offer it the way it was first installed.
+    await shell.openPath(downloaded).catch(quiet)
+    return setUpdate({ status: 'manual', latest: offered?.version })
+  }
+}
+
+/** Left over from an earlier update: the downloaded installer and, on a Mac, the previous app. */
+function cleanUpAfterUpdate() {
+  fs.promises.rm(updateDir(), { recursive: true, force: true }).catch(quiet)
+  if (process.platform === 'darwin' && app.isPackaged) {
+    for (const what of ['old', 'update']) fs.promises.rm(asideOf(macBundle(), what), { recursive: true, force: true }).catch(quiet)
+  }
 }
 
 // ---------- menu ----------
@@ -333,6 +524,25 @@ if (!app.requestSingleInstanceLock()) {
   ipcMain.on('desktop:retry', (event) => {
     if (trusted(event)) loadSite(event.sender)
   })
+  ipcMain.handle('desktop:update', (event, action) => {
+    if (!trusted(event)) return null
+    switch (action) {
+      case 'state':
+        return updateState
+      case 'check':
+        return checkForUpdate()
+      case 'download':
+        void downloadUpdate() // progress arrives as desktop:update-state
+        return updateState
+      case 'cancel':
+        downloadAbort?.abort()
+        return updateState
+      case 'install':
+        return installUpdate()
+      default:
+        return null
+    }
+  })
 
   app.whenReady().then(() => {
     app.setAboutPanelOptions({
@@ -348,6 +558,7 @@ if (!app.requestSingleInstanceLock()) {
     session.defaultSession.setPermissionRequestHandler((_contents, permission, allow) =>
       allow(permission === 'clipboard-sanitized-write'))
     session.defaultSession.on('will-download', handleDownload)
+    cleanUpAfterUpdate()
 
     Menu.setApplicationMenu(buildMenu())
     createWindow()

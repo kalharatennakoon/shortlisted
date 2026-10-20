@@ -1,20 +1,20 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { APP_VERSION, CONTACT_EMAIL, DESKTOP_DOWNLOADS, DESKTOP_VERSION, OWNER_NAME } from '../lib/config'
+import { APP_VERSION, CONTACT_EMAIL, DESKTOP_VERSION, OWNER_NAME } from '../lib/config'
 import { desktop, isDesktop, isNewerVersion, latestDesktopVersion } from '../lib/desktop'
 import { Logo, MailIcon } from './Icons'
 
 const mailto = `mailto:${CONTACT_EMAIL}?subject=Shortlisted`
 
 // The desktop app shows this site, so the site itself is always current; only its window ("shell") can be out
-// of date. When a newer installer has been published, offer it: the link saves the file from inside the app.
+// of date. When a newer installer has been published, point to the Desktop app card in settings, which updates it.
 // Newer, not merely different: someone on the latest version must never be told to update.
 // The version built into the page answers at once; the published one is asked for again whenever the window
 // comes back into view, so a window left open over a release still finds out.
 const RECHECK_MS = 10 * 60 * 1000
 
-function useDesktopUpdate(): string | null {
+function useDesktopUpdate(): boolean {
   const [published, setPublished] = useState(DESKTOP_VERSION)
   useEffect(() => {
     if (!desktop) return
@@ -32,9 +32,7 @@ function useDesktopUpdate(): string | null {
       document.removeEventListener('visibilitychange', check)
     }
   }, [])
-  return desktop && published && isNewerVersion(published, desktop.version)
-    ? DESKTOP_DOWNLOADS[desktop.platform === 'darwin' ? 'mac' : 'windows']
-    : null
+  return Boolean(desktop && published && isNewerVersion(published, desktop.version))
 }
 
 /**
@@ -71,7 +69,7 @@ export default function Footer({ compact = false }: { compact?: boolean }) {
           <nav className="footer-inline" aria-label="Footer">
             <Link to="/privacy">Privacy</Link>
             <a href={mailto}>Contact</a>
-            {desktopUpdate && <a href={desktopUpdate} download>Update the desktop app</a>}
+            {desktopUpdate && <Link to="/profile" state={{ section: 'desktop' }}>Update the desktop app</Link>}
           </nav>
           {bottom}
         </div>

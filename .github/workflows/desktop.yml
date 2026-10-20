@@ -6,7 +6,8 @@ name: Desktop app
 # - A pull request that changes desktop/: builds both and attaches them to the run (Summary -> Artifacts),
 #   so they can be tried before merging. Nothing is published.
 # - A push to main that changes desktop/, or "Run workflow": builds both, publishes them as the
-#   "desktop-latest" release, then redeploys the site, which serves them from /downloads/ (see deploy.yml).
+#   "desktop-latest" release (and keeps a "desktop-v<version>" release of each version), then redeploys
+#   the site, which serves them from /downloads/ (see deploy.yml), with latest.json for in-app updates.
 
 on:
   push:
@@ -83,15 +84,41 @@ jobs:
         with:
           path: installers
           merge-multiple: true
+      - name: Write the update list the installed apps read (downloads/latest.json)
+        run: |
+          VERSION=$(node -p "require('./desktop/package.json').version") node <<'EOF'
+          const fs = require('fs')
+          const crypto = require('crypto')
+          const entry = (file) => {
+            const data = fs.readFileSync(`installers/${file}`)
+            return { file, size: data.length, sha256: crypto.createHash('sha256').update(data).digest('hex') }
+          }
+          const list = { version: process.env.VERSION, mac: entry('Shortlisted.dmg'), windows: entry('Shortlisted-Setup.exe') }
+          fs.writeFileSync('installers/latest.json', JSON.stringify(list, null, 2) + '\n')
+          fs.writeFileSync('installers/version.txt', process.env.VERSION + '\n')
+          console.log(list)
+          EOF
+      # Every version keeps a release of its own (desktop-v1.0.3, …); "desktop-latest" is the newest, served by the site.
+      - name: Keep this version's release
+        run: |
+          version=$(cat installers/version.txt)
+          files="installers/Shortlisted-Setup.exe installers/Shortlisted.dmg installers/latest.json installers/version.txt"
+          if gh release view "desktop-v$version" > /dev/null 2>&1; then
+            gh release upload "desktop-v$version" $files --clobber
+          else
+            gh release create "desktop-v$version" $files \
+              --title "Shortlisted desktop $version" \
+              --notes "Installers for Windows and Mac, version $version." \
+              --target "$GITHUB_SHA" --latest=false
+          fi
       - name: Replace the "desktop-latest" release
         run: |
-          version=$(node -p "require('./desktop/package.json').version")
-          echo "$version" > installers/version.txt
+          version=$(cat installers/version.txt)
           gh release delete desktop-latest --yes --cleanup-tag || true
           gh release create desktop-latest \
-            installers/Shortlisted-Setup.exe installers/Shortlisted.dmg installers/version.txt \
-            --title "Shortlisted desktop $version" \
-            --notes "Installers for Windows and Mac. The site serves these from /downloads/." \
+            installers/Shortlisted-Setup.exe installers/Shortlisted.dmg installers/latest.json installers/version.txt \
+            --title "Shortlisted desktop $version (latest)" \
+            --notes "The newest installers for Windows and Mac. The site serves these from /downloads/. Earlier versions are kept as desktop-v… releases." \
             --target "$GITHUB_SHA" --latest=false
       - name: Redeploy the site so it serves these installers
         run: gh workflow run deploy.yml --ref main

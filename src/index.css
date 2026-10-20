@@ -409,6 +409,17 @@ a.btn.btn-light:hover { background: #eef2ff; }
 .settings-icon { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); flex: none; }
 .settings-icon.danger { background: #fef2f2; color: var(--danger); }
 .settings-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 14px; border-top: 1px solid var(--border); }
+.update-progress-wrap { display: flex; flex-direction: column; gap: 8px; }
+.update-progress { height: 8px; border-radius: 999px; background: var(--canvas); border: 1px solid var(--border); overflow: hidden; }
+.update-progress > span { display: block; height: 100%; background: var(--accent); border-radius: inherit; transition: width .2s ease-out; }
+a.link-button {
+  display: inline-flex; align-items: center; justify-content: center; padding: 9px 14px; border-radius: var(--radius-sm);
+  font-weight: 500; text-decoration: none; white-space: nowrap;
+}
+a.link-button.primary { background: var(--accent); color: #fff; box-shadow: var(--shadow-sm); }
+a.link-button.primary:hover { background: var(--accent-hover); }
+a.link-button:focus-visible { outline: none; box-shadow: var(--focus); }
+@media (prefers-reduced-motion: reduce) { .update-progress > span { transition: none; } }
 .danger-zone { border-color: #fecaca; }
 .menu-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .brand { color: var(--text); }
