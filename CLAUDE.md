@@ -116,6 +116,10 @@ web app (PWA) was the alternative considered earlier. `desktop/README.md` has th
   compact footer. Older, never just different (`isNewerVersion` in `lib/desktop.ts`): the first version compared
   with `!==`, and a freshly installed 1.0.1 was told to update because its window still had the copy of the site
   that offered 1.0.0 (pages are cached for ten minutes, and an open window keeps its page until it is reloaded).
+  Because of that, the footer also reads `downloads/version.txt` (kept there by `deploy.yml`) without the cache,
+  on load and when the window comes back into view, at most every ten minutes (`latestDesktopVersion`): a Mac
+  window stays open for days, as closing it doesn't quit the app. The installer the link downloads is saved to
+  Downloads and opened (from 1.0.2; 1.0.1 shows "Save as"), like an `.ics` file.
 - Icons: `scripts/make-icons.py` (Pillow) draws them from the logo's measurements: `desktop/build/icon.png` and
   `icon.icns` for the Mac (tile and shadow on a 1024px canvas), `icon.ico` for Windows (the tile fills the square,
   each size drawn at its own size). Colours and size are settings at its top; don't edit the image files by hand.

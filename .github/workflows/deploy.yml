@@ -33,7 +33,7 @@ jobs:
         run: |
           if gh release download desktop-latest --dir downloads; then
             echo "version=$(cat downloads/version.txt)" >> "$GITHUB_OUTPUT"
-            rm downloads/version.txt
+            # version.txt stays: an open desktop window reads it to learn about a release (latestDesktopVersion)
           else
             rm -rf downloads
             echo "No desktop release yet: the site is published without the download section."

@@ -222,14 +222,21 @@ function uniquePath(dir, name) {
   return candidate
 }
 
+/** Saved to Downloads and opened: calendar files, and this app's own installers (from "Update the desktop app"). */
+const OPEN_AFTER_DOWNLOAD = ['.ics', '.dmg', '.exe']
+
 /**
  * CSV exports and documents get the usual "Save as" window. A calendar file (.ics) is what
  * "Add to calendar" makes: save it to Downloads and open it, so the event lands in the person's
- * calendar app in one click. If nothing on the computer opens .ics files, show the file instead.
+ * calendar app in one click. An installer comes from the site's own /downloads/ ("Update the desktop
+ * app"): opening it shows the Mac's drag-to-Applications window or starts the Windows setup.
+ * If nothing on the computer opens the file, show it in its folder instead.
  */
 function handleDownload(_event, item) {
   const name = path.basename(item.getFilename())
-  if (path.extname(name).toLowerCase() !== '.ics') return
+  const ext = path.extname(name).toLowerCase()
+  if (!OPEN_AFTER_DOWNLOAD.includes(ext)) return
+  if (ext !== '.ics' && !isAppUrl(item.getURL())) return // an installer from anywhere else is just saved
   const folder = app.getPath('downloads')
   try {
     fs.mkdirSync(folder, { recursive: true })

@@ -35,6 +35,22 @@ export function isNewerVersion(published: string, installed: string): boolean {
   return false
 }
 
+/**
+ * The version of the installers the site serves now, read from `downloads/version.txt` (put there by the deploy)
+ * past every cache. The version built into the page is only as new as the page, and a window that stays open (on
+ * a Mac, closing the window doesn't quit the app) keeps its page for days. Null when it can't be read.
+ */
+export async function latestDesktopVersion(): Promise<string | null> {
+  try {
+    const res = await fetch(`${import.meta.env.BASE_URL}downloads/version.txt`, { cache: 'no-store' })
+    if (!res.ok) return null
+    const text = (await res.text()).trim()
+    return /^\d+(\.\d+){0,3}$/.test(text) ? text : null
+  } catch {
+    return null
+  }
+}
+
 /** Added to the address Supabase sends people back to when the desktop app asked (sign-in, reset, confirm). */
 export const DESKTOP_PARAM = 'desktop'
 
