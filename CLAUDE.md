@@ -437,6 +437,8 @@ desktop/               The Windows and Mac app: main.js (window, links, sign-in 
 - Status colours live in `.status-*` classes as `--st-bg/--st-fg/--st-dot`; always shown with a text label.
 - Don't wrap an input in a <label> that also contains another button (e.g. "Forgot password?"): label clicks
   activate the first labelable element. Use <label htmlFor> + a `.field` div instead.
+- Board columns show the first 5 cards (`COLUMN_LIMIT` in Board.tsx) then "Show N more" / "Show less", per column.
+  A card dragged into the hidden part shows its drop slot at the foot of the visible list.
 - Board cards: Enter opens, Space picks up. Clicks within 250ms of a drop are ignored (mouseup click). Don't add
   sortable-within-column without a position column in the DB; cards are ordered by the list order.
 - Icons are inline SVGs in `components/Icons.tsx` (no icon library).

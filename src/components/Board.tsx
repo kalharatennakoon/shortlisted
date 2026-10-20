@@ -25,7 +25,7 @@ import { STATUSES, type Application, type Status } from '../lib/types'
 import { NextBadge, PostingBadge, PostingLink } from './Badges'
 import { DocBadge } from './DocBadge'
 import { StageBadge } from './StageBadge'
-import { CalendarIcon, FlagIcon, PlusIcon } from './Icons'
+import { CalendarIcon, ChevronIcon, FlagIcon, PlusIcon } from './Icons'
 
 interface Props {
   /** Applications to show (already search-filtered), in display order */
@@ -53,6 +53,9 @@ const columnJump: KeyboardCoordinateGetter = (event, { context: { active, over, 
   const rect = droppableRects.get(target)
   return rect ? { x: rect.left + 12, y: rect.top + 44 } : undefined
 }
+
+// Cards shown per column before "Show N more"; long columns otherwise push the page far down
+const COLUMN_LIMIT = 5
 
 const dropAnimation: DropAnimation = {
   duration: 220,
@@ -132,12 +135,16 @@ function Column({
   onNew?: (status: Status) => void
 }) {
   const { setNodeRef } = useDroppable({ id: status })
+  const [expanded, setExpanded] = useState(false)
   const count = apps.length + (slotIndex !== null ? 1 : 0) - (leavingId && apps.some((a) => a.id === leavingId) ? 1 : 0)
+  const hidden = expanded ? 0 : Math.max(0, apps.length - COLUMN_LIMIT)
+  const shown = hidden ? apps.slice(0, COLUMN_LIMIT) : apps
   const slot = <div key="__slot" className="drop-slot" style={{ height: slotHeight }} aria-hidden="true" />
-  const items = apps.map((a) => (
+  const items = shown.map((a) => (
     <DraggableCard key={a.id} app={a} leaving={a.id === leavingId} onOpen={() => onOpen(a)} />
   ))
-  if (slotIndex !== null) items.splice(slotIndex, 0, slot)
+  // A card landing among the hidden ones shows its slot at the foot of the visible list
+  if (slotIndex !== null) items.splice(Math.min(slotIndex, shown.length), 0, slot)
 
   return (
     <section
@@ -157,6 +164,12 @@ function Column({
         )}
       </header>
       {items}
+      {apps.length > COLUMN_LIMIT && (
+        <button className="column-more" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}>
+          {expanded ? 'Show less' : `Show ${hidden} more`}
+          <ChevronIcon size={14} className={expanded ? 'up' : undefined} />
+        </button>
+      )}
       {count === 0 && <p className="column-empty">{activeId ? 'Drop here' : 'No applications'}</p>}
     </section>
   )

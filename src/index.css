@@ -600,6 +600,15 @@ button.chip:hover { background: var(--accent-soft); border-color: #bfd3fe; color
 .column-add { width: 26px; height: 26px; padding: 0; border-radius: 7px; color: var(--st-fg); opacity: .65; flex: none; }
 .column-add:hover { opacity: 1; background: rgba(255, 255, 255, 0.85); }
 .column-add:focus-visible { opacity: 1; outline: none; box-shadow: var(--focus); }
+.column-more {
+  display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%;
+  padding: 7px 8px; font-size: 12px; font-weight: 500; color: var(--text-2);
+  background: transparent; border: 1px dashed var(--border-strong); border-radius: 10px;
+}
+.column-more:hover { color: var(--accent); background: var(--accent-soft); border-color: #bfd3fe; }
+.column-more:focus-visible { outline: none; box-shadow: var(--focus); }
+.column-more svg { transition: transform .15s; }
+.column-more svg.up { transform: rotate(180deg); }
 .column-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 22px 8px; border: 1.5px dashed var(--border-strong); border-radius: 10px; }
 
 .job-card {
