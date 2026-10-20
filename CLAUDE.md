@@ -127,7 +127,9 @@ web app (PWA) was the alternative considered earlier. `desktop/README.md` has th
   address and checksum never come from it. macOS's own updater (Squirrel) isn't used: it needs a signed app.
   After an update the app opens on the page it was started from (`reopen.json` in userData). The updater deletes
   with `original-fs`: Electron's `fs` treats `.asar` files as folders, and the first cleanup left the old app's
-  `app.asar` behind.
+  `app.asar` behind. That leftover then blocked the next swap (1.0.4 → 1.0.5 fell back to the manual install,
+  and the app went missing from Applications), so the hidden copies now get a new name each time
+  (`.Shortlisted-old-<time>.app`), a failed install removes its staged copy, and every start removes any leftovers.
   Copies before 1.0.3 have no `update` on the bridge: the page downloads the installer itself
   (`downloadInstaller`: progress bar, size + SHA-256 from `latest.json`) and then hands the finished file to "Save
   as". Not a plain link: those copies save under the final name with no progress, and a `.dmg` opened before it

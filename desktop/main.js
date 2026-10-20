@@ -381,7 +381,10 @@ const writable = (p) => {
 
 /** /Applications/Shortlisted.app, worked out from the running program inside it. */
 const macBundle = () => path.resolve(process.execPath, '../../..')
-const asideOf = (bundle, what) => path.join(path.dirname(bundle), `.${path.basename(bundle, '.app')}-${what}.app`)
+// Hidden copies beside the app while it is swapped. Each gets a new name: a fixed one left over from an earlier
+// update (1.0.4 couldn't delete its old copy) made the swap fail, and the app went missing in the manual install.
+const asidePrefix = (bundle) => `.${path.basename(bundle, '.app')}-`
+const asideOf = (bundle, what) => path.join(path.dirname(bundle), `${asidePrefix(bundle)}${what}-${Date.now()}.app`)
 
 async function installMac(dmg) {
   const bundle = macBundle()
@@ -394,24 +397,27 @@ async function installMac(dmg) {
   }
   const mount = path.join(updateDir(), 'mount')
   const staged = asideOf(bundle, 'update')
-  await realFs.promises.rm(staged, { recursive: true, force: true })
-  await run('hdiutil', ['attach', dmg, '-nobrowse', '-readonly', '-noautoopen', '-mountpoint', mount])
-  try {
-    const name = (await realFs.promises.readdir(mount)).find((f) => f.endsWith('.app'))
-    if (!name) throw new Error('no app in the disk image')
-    await run('ditto', [path.join(mount, name), staged])
-  } finally {
-    await run('hdiutil', ['detach', mount, '-force']).catch(quiet)
-  }
-  await run('codesign', ['--verify', '--deep', '--strict', staged]) // copied whole and unchanged
-  // Swap: the running copy keeps working from the files it has open; the old one is removed at the next start.
   const old = asideOf(bundle, 'old')
-  await realFs.promises.rm(old, { recursive: true, force: true })
-  await realFs.promises.rename(bundle, old)
   try {
-    await realFs.promises.rename(staged, bundle)
+    await run('hdiutil', ['attach', dmg, '-nobrowse', '-readonly', '-noautoopen', '-mountpoint', mount])
+    try {
+      const name = (await realFs.promises.readdir(mount)).find((f) => f.endsWith('.app'))
+      if (!name) throw new Error('no app in the disk image')
+      await run('ditto', [path.join(mount, name), staged])
+    } finally {
+      await run('hdiutil', ['detach', mount, '-force']).catch(quiet)
+    }
+    await run('codesign', ['--verify', '--deep', '--strict', staged]) // copied whole and unchanged
+    // Swap: the running copy keeps working from the files it has open; the old one is removed at the next start.
+    await realFs.promises.rename(bundle, old)
+    try {
+      await realFs.promises.rename(staged, bundle)
+    } catch (error) {
+      await realFs.promises.rename(old, bundle)
+      throw error
+    }
   } catch (error) {
-    await realFs.promises.rename(old, bundle)
+    await realFs.promises.rm(staged, { recursive: true, force: true }).catch(quiet)
     throw error
   }
   rememberPage()
@@ -468,7 +474,13 @@ function takeReopenPage() {
 function cleanUpAfterUpdate() {
   realFs.promises.rm(updateDir(), { recursive: true, force: true }).catch(quiet)
   if (process.platform === 'darwin' && app.isPackaged) {
-    for (const what of ['old', 'update']) realFs.promises.rm(asideOf(macBundle(), what), { recursive: true, force: true }).catch(quiet)
+    const bundle = macBundle()
+    const folder = path.dirname(bundle)
+    const leftover = (name) => name.startsWith(asidePrefix(bundle)) && /-(old|update)(-\d+)?\.app$/.test(name)
+    realFs.promises
+      .readdir(folder)
+      .then((names) => names.filter(leftover).forEach((name) => realFs.promises.rm(path.join(folder, name), { recursive: true, force: true }).catch(quiet)))
+      .catch(quiet)
   }
 }
 
