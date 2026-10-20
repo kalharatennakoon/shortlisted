@@ -70,6 +70,62 @@ export async function latestDesktopVersion(): Promise<string | null> {
   }
 }
 
+/** One installer in `downloads/latest.json` (written by .github/workflows/desktop.yml). */
+export interface PublishedInstaller {
+  version: string
+  file: string
+  size: number
+  sha256: string
+}
+
+/** The installer for this computer from `downloads/latest.json`, past every cache. Null when it can't be read. */
+export async function publishedInstaller(platform: string): Promise<PublishedInstaller | null> {
+  try {
+    const res = await fetch(`${import.meta.env.BASE_URL}downloads/latest.json?t=${Date.now()}`, { cache: 'no-store' })
+    if (!res.ok) return null
+    const data = await res.json()
+    const entry = data?.[platform === 'darwin' ? 'mac' : 'windows']
+    const ok =
+      typeof data?.version === 'string' && /^\d+(\.\d+){0,3}$/.test(data.version) &&
+      /^[\w.-]+$/.test(entry?.file ?? '') && /^[a-f0-9]{64}$/.test(entry?.sha256 ?? '') &&
+      Number.isSafeInteger(entry?.size) && entry.size > 0
+    return ok ? { version: data.version, file: entry.file, size: entry.size, sha256: entry.sha256 } : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Downloads an installer in the page, reporting progress, and checks its size and checksum. For copies of the
+ * app before 1.0.3, which save a download under its final name and show no progress: opened before the last
+ * byte arrived, the .dmg looked damaged. Saving the finished file afterwards takes a moment.
+ */
+export async function downloadInstaller(
+  installer: PublishedInstaller,
+  onProgress: (received: number) => void,
+  signal: AbortSignal,
+): Promise<Blob> {
+  const url = `${import.meta.env.BASE_URL}downloads/${installer.file}?v=${installer.version}`
+  const res = await fetch(url, { cache: 'no-store', signal })
+  if (!res.ok || !res.body) throw new Error(`Download failed (${res.status})`)
+  const reader = res.body.getReader()
+  const chunks: Uint8Array[] = []
+  let received = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    chunks.push(value)
+    received += value.length
+    if (received > installer.size) throw new Error('The download is larger than expected')
+    onProgress(received)
+  }
+  const blob = new Blob(chunks as BlobPart[], { type: 'application/octet-stream' })
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', await blob.arrayBuffer()))
+  const hex = Array.from(digest, (b) => b.toString(16).padStart(2, '0')).join('')
+  if (received !== installer.size || hex !== installer.sha256) throw new Error('The download is damaged')
+  return blob
+}
+
 /** Added to the address Supabase sends people back to when the desktop app asked (sign-in, reset, confirm). */
 export const DESKTOP_PARAM = 'desktop'
 

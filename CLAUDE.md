@@ -120,7 +120,10 @@ web app (PWA) was the alternative considered earlier. `desktop/README.md` has th
   `.dmg`, it opens the `.dmg` in Finder instead. Windows: runs the setup with `--updated /S --force-run`, which
   closes the app, installs and reopens it. The page can only send `check`/`download`/`cancel`/`install`; the
   address and checksum never come from it. macOS's own updater (Squirrel) isn't used: it needs a signed app.
-  Copies before 1.0.3 have no `update` on the bridge: the card offers the installer to download once.
+  Copies before 1.0.3 have no `update` on the bridge: the page downloads the installer itself
+  (`downloadInstaller`: progress bar, size + SHA-256 from `latest.json`) and then hands the finished file to "Save
+  as". Not a plain link: those copies save under the final name with no progress, and a `.dmg` opened before it
+  had finished said "disk image is corrupted" (Kalhara hit this updating 1.0.2 → 1.0.3).
 - **Update notice:** the compact footer links to that card when the installed copy is older than the published
   version. Older, never just different (`isNewerVersion` in `lib/desktop.ts`, repeated in `main.js`): the first
   version compared with `!==`, and a freshly installed 1.0.1 was told to update because its window still had the

@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import { DESKTOP_DOWNLOADS } from '../lib/config'
-import { desktop, isNewerVersion, latestDesktopVersion, type DesktopUpdateState } from '../lib/desktop'
+import {
+  desktop,
+  downloadInstaller,
+  isNewerVersion,
+  latestDesktopVersion,
+  publishedInstaller,
+  type DesktopUpdateState,
+  type PublishedInstaller,
+} from '../lib/desktop'
 import { MonitorIcon } from './Icons'
 
 const megabytes = (bytes = 0) => `${(bytes / 1024 / 1024).toFixed(1)} MB`
@@ -52,7 +60,6 @@ function Updater() {
 
   const act = (action: 'check' | 'download' | 'cancel' | 'install') => void desktop!.update!(action).then((s) => s && setUpdate(s))
   const status = update?.status ?? 'checking'
-  const percent = update?.total ? Math.min(100, Math.round(((update.received ?? 0) / update.total) * 100)) : 0
 
   let message: ReactNode
   let actions: ReactNode = null
@@ -75,22 +82,7 @@ function Updater() {
       break
     case 'downloading':
       message = (
-        <div className="update-progress-wrap">
-          <p>Downloading version {update?.latest}…</p>
-          <div
-            className="update-progress"
-            role="progressbar"
-            aria-label="Download progress"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={percent}
-          >
-            <span style={{ width: `${percent}%` }} />
-          </div>
-          <p className="muted small">
-            {megabytes(update?.received)} of {megabytes(update?.total)} · {percent}%
-          </p>
-        </div>
+        <DownloadProgress version={update?.latest} received={update?.received} total={update?.total} />
       )
       actions = <button type="button" className="secondary" onClick={() => act('cancel')}>Cancel</button>
       break
@@ -145,28 +137,156 @@ function Updater() {
   )
 }
 
-/** Copies from before 1.0.3 can't update themselves: offer the installer once, and say what comes after. */
+function DownloadProgress({ version, received = 0, total = 0 }: { version?: string; received?: number; total?: number }) {
+  const percent = total ? Math.min(100, Math.round((received / total) * 100)) : 0
+  return (
+    <div className="update-progress-wrap">
+      <p>Downloading version {version}…</p>
+      <div className="update-progress" role="progressbar" aria-label="Download progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+        <span style={{ width: `${percent}%` }} />
+      </div>
+      <p className="muted small">
+        {megabytes(received)} of {megabytes(total)} · {percent}%
+      </p>
+    </div>
+  )
+}
+
+type Manual =
+  | { step: 'checking' }
+  | { step: 'latest' }
+  | { step: 'available'; installer: PublishedInstaller }
+  | { step: 'downloading'; installer: PublishedInstaller; received: number }
+  | { step: 'saved'; installer: PublishedInstaller; url: string }
+  | { step: 'failed'; installer: PublishedInstaller }
+  | { step: 'link'; version: string } // no latest.json: a plain link, as before
+
+/**
+ * Copies from before 1.0.3 can't update themselves. The page downloads the installer instead (with progress and a
+ * checksum), then hands the finished file over to be saved. Opening it is up to the person, once.
+ */
 function ManualUpdate() {
-  const [latest, setLatest] = useState<string | null | undefined>(undefined)
+  const [state, setState] = useState<Manual>({ step: 'checking' })
+  const abort = useRef<AbortController | null>(null)
+  const saveLink = useRef<HTMLAnchorElement>(null)
+
   useEffect(() => {
-    void latestDesktopVersion().then(setLatest)
+    void (async () => {
+      const installer = await publishedInstaller(desktop!.platform)
+      if (installer) {
+        setState(isNewerVersion(installer.version, desktop!.version) ? { step: 'available', installer } : { step: 'latest' })
+        return
+      }
+      const version = await latestDesktopVersion()
+      setState(version && isNewerVersion(version, desktop!.version) ? { step: 'link', version } : { step: 'latest' })
+    })()
+    return () => abort.current?.abort()
   }, [])
 
-  if (latest === undefined) return <p className="muted">Checking for updates…</p>
-  if (!latest || !isNewerVersion(latest, desktop!.version)) return <p className="success">You have the latest version.</p>
-  return (
-    <>
-      <p>
-        Version <strong>{latest}</strong> is available. This copy can't update itself, so download the installer once
-        {isMac ? ', open it, drag Shortlisted into Applications and choose Replace' : ' and run it'}. After that,
-        updates download and install right here.
-      </p>
-      <div className="settings-actions">
-        <span className="spacer" />
-        <a className="link-button primary" href={DESKTOP_DOWNLOADS[isMac ? 'mac' : 'windows']} download>
-          Download version {latest}
-        </a>
-      </div>
-    </>
+  // Free the downloaded file when leaving the page
+  const savedUrl = state.step === 'saved' ? state.url : null
+  useEffect(() => () => {
+    if (savedUrl) URL.revokeObjectURL(savedUrl)
+  }, [savedUrl])
+
+  // The "Save as" window opens once the file is complete
+  useEffect(() => {
+    if (state.step === 'saved') saveLink.current?.click()
+  }, [state.step])
+
+  async function download(installer: PublishedInstaller) {
+    const controller = new AbortController()
+    abort.current = controller
+    setState({ step: 'downloading', installer, received: 0 })
+    let shown = 0
+    try {
+      const blob = await downloadInstaller(
+        installer,
+        (received) => {
+          if (Date.now() - shown < 120 && received < installer.size) return
+          shown = Date.now()
+          setState({ step: 'downloading', installer, received })
+        },
+        controller.signal,
+      )
+      setState({ step: 'saved', installer, url: URL.createObjectURL(blob) })
+    } catch {
+      setState(controller.signal.aborted ? { step: 'available', installer } : { step: 'failed', installer })
+    }
+  }
+
+  const fileUrl = DESKTOP_DOWNLOADS[isMac ? 'mac' : 'windows']
+  const steps = isMac
+    ? 'open it, drag Shortlisted into Applications, choose Replace, then quit Shortlisted and open it again'
+    : 'run it, then open Shortlisted again'
+  const actionsRow = (children: ReactNode) => (
+    <div className="settings-actions">
+      <span className="spacer" />
+      {children}
+    </div>
   )
+
+  switch (state.step) {
+    case 'checking':
+      return <p className="muted">Checking for updates…</p>
+    case 'latest':
+      return <p className="success">You have the latest version.</p>
+    case 'link':
+      return (
+        <>
+          <p>
+            Version <strong>{state.version}</strong> is available. Download the installer and {steps}. Wait until it
+            has finished downloading before opening it.
+          </p>
+          {actionsRow(<a className="link-button primary" href={fileUrl} download>Download version {state.version}</a>)}
+        </>
+      )
+    case 'available':
+      return (
+        <>
+          <p>
+            Version <strong>{state.installer.version}</strong> is available ({megabytes(state.installer.size)}). This
+            copy can't install it by itself: download it here, then {steps}. After that, updates install right here.
+          </p>
+          {actionsRow(
+            <button type="button" className="primary" onClick={() => void download(state.installer)}>
+              Download version {state.installer.version}
+            </button>,
+          )}
+        </>
+      )
+    case 'downloading':
+      return (
+        <>
+          <div aria-live="polite">
+            <DownloadProgress version={state.installer.version} received={state.received} total={state.installer.size} />
+          </div>
+          {actionsRow(<button type="button" className="secondary" onClick={() => abort.current?.abort()}>Cancel</button>)}
+        </>
+      )
+    case 'saved':
+      return (
+        <>
+          <p className="success" role="status">
+            Version {state.installer.version} is downloaded. Save it, then {steps}.
+          </p>
+          {actionsRow(
+            <a ref={saveLink} className="link-button primary" href={state.url} download={state.installer.file}>
+              Save the installer again
+            </a>,
+          )}
+        </>
+      )
+    case 'failed':
+      return (
+        <>
+          <p className="error" role="alert">The download didn't finish. Check your connection and try again.</p>
+          {actionsRow(
+            <button type="button" className="secondary" onClick={() => void download(state.installer)}>
+              Try again
+            </button>,
+          )}
+        </>
+      )
+  }
 }
