@@ -78,6 +78,11 @@ Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
   (tab progress line is the timer: its `animationend` shows the next view; pauses on hover/off-screen, stops on click,
   Pause/Play button), the roles ticker, and the application card moving through the stages. All of it stops under
   `prefers-reduced-motion`, and the tour/journey only run while on screen (`useInView`).
+- **Blank page after a release:** each deploy replaces `assets/` (new file names), and a page kept from before it
+  (cached up to ten minutes, in a browser or the desktop app) points at files that are gone: a white screen.
+  A small script at the top of `index.html` reloads once, fresh, when a file under `assets/` fails to load
+  (sessionStorage timestamp, so never a loop), and the desktop app always fetches the page itself fresh
+  (`loadSite`, `Cache-Control: no-cache`). Kalhara saw it on the first in-app update, October 2026.
 - Link previews: Open Graph + Twitter tags in `index.html` point at the absolute URL of `public/og-image.png`
   (1200×630). Update the image and tags together, and re-scrape with LinkedIn's Post Inspector after changing them.
 

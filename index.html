@@ -2,6 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // A page kept from before a release can point at script files the release removed: the page then stays
+      // blank (white). Load it again, fresh, once; the timestamp stops a loop if the files really are missing.
+      addEventListener('error', function (e) {
+        var el = e.target
+        var src = el && (el.src || el.href)
+        if (!src || !/\/assets\//.test(src)) return
+        try {
+          var last = Number(sessionStorage.getItem('stale-reload')) || 0
+          if (Date.now() - last < 15000) return
+          sessionStorage.setItem('stale-reload', String(Date.now()))
+        } catch (_) {
+          return
+        }
+        location.reload()
+      }, true)
+    </script>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
