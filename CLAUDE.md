@@ -132,12 +132,11 @@ web app (PWA) was the alternative considered earlier. `desktop/README.md` has th
   (`downloadInstaller`: progress bar, size + SHA-256 from `latest.json`) and then hands the finished file to "Save
   as". Not a plain link: those copies save under the final name with no progress, and a `.dmg` opened before it
   had finished said "disk image is corrupted" (Kalhara hit this updating 1.0.2 → 1.0.3).
-- **Update notice:** the compact footer links to that card when the installed copy is older than the published
-  version. Older, never just different (`isNewerVersion` in `lib/desktop.ts`, repeated in `main.js`): the first
-  version compared with `!==`, and a freshly installed 1.0.1 was told to update because its window still had the
-  copy of the site that offered 1.0.0 (pages are cached for ten minutes, and an open window keeps its page until
-  it is reloaded). So the footer also reads `downloads/version.txt` without the cache, on load and when the window
-  comes back into view, at most every ten minutes (`latestDesktopVersion`): a Mac window stays open for days.
+- **No update notice anywhere else:** updates live only in that card (Kalhara removed the footer's "Update the
+  desktop app" link, October 2026). Versions compare as older, never just different (`isNewerVersion` in
+  `lib/desktop.ts`, repeated in `main.js`): the first version compared with `!==`, and a freshly installed 1.0.1
+  was told to update because its window still had the copy of the site that offered 1.0.0. The card reads the
+  published version live (`latest.json`, `version.txt` via `latestDesktopVersion`), never the one built into the page.
 - **Releases:** each version keeps its own GitHub release, `desktop-v<version>` (from 1.0.3; Kalhara wants old
   ones kept); `desktop-latest` is replaced each time and is what `deploy.yml` serves from `/downloads/`.
 - Two version numbers on purpose: `APP_VERSION` (the site, "v3.0") and the app's own `version` (only bumped when

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { useLocation } from 'react-router-dom'
 import { DESKTOP_DOWNLOADS } from '../lib/config'
 import {
   desktop,
@@ -21,17 +20,9 @@ const system = isMac ? 'Mac' : 'Windows'
  * progress), install and start again. The work happens in desktop/main.js; this only shows where it has got to.
  */
 export default function DesktopAppCard() {
-  const { state } = useLocation() as { state: { section?: string } | null }
-  const card = useRef<HTMLElement>(null)
-
-  // "Update the desktop app" in the footer comes here
-  useEffect(() => {
-    if (state?.section === 'desktop') card.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }, [state])
-
   if (!desktop) return null
   return (
-    <section className="card settings-card" id="desktop" ref={card}>
+    <section className="card settings-card" id="desktop">
       <header className="settings-head">
         <span className="settings-icon"><MonitorIcon size={18} /></span>
         <div>
