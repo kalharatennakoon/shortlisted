@@ -147,7 +147,7 @@ function createWindow() {
   win.on('closed', () => {
     if (mainWindow === win) mainWindow = null
   })
-  loadSite(win.webContents)
+  loadSite(win.webContents, takeReopenPage() ?? undefined)
   return win
 }
 
@@ -163,7 +163,10 @@ function showWindow() {
 
 // A failed load is reported by 'did-fail-load' below, which shows the offline page; nothing more to do here.
 const quiet = () => {}
-const loadSite = (contents) => contents.loadURL(APP_URL.href).catch(quiet)
+// The page itself is always fetched fresh: a copy kept from before a release points at script files the release
+// removed, and showed a blank white window. (Scripts and styles have new names each release; they stay cached.)
+const loadSite = (contents, url = APP_URL.href) =>
+  contents.loadURL(url, { extraHeaders: 'Cache-Control: no-cache\n' }).catch(quiet)
 const loadOffline = (contents, extra = {}) =>
   contents.loadFile(OFFLINE_PAGE, { query: { site: LIVE_URL, ...extra } }).catch(quiet)
 
@@ -263,6 +266,8 @@ function handleDownload(_event, item) {
 // - Windows: run the downloaded setup silently; it closes this copy, installs and opens the new one.
 
 const run = promisify(execFile)
+// Electron's own `fs` treats .asar files as folders, so it can't delete an app (the old copy kept its app.asar).
+const realFs = require('original-fs')
 const UPDATE_KEYS = { darwin: 'mac', win32: 'windows' }
 const updateDir = () => path.join(app.getPath('temp'), 'shortlisted-update')
 
@@ -330,12 +335,12 @@ async function downloadUpdate() {
   let out = null
   setUpdate({ status: 'downloading', latest: update.version, received: 0, total: update.size })
   try {
-    await fs.promises.rm(dir, { recursive: true, force: true })
-    await fs.promises.mkdir(dir, { recursive: true })
+    await realFs.promises.rm(dir, { recursive: true, force: true })
+    await realFs.promises.mkdir(dir, { recursive: true })
     const res = await net.fetch(`${update.url}?v=${update.version}`, { cache: 'no-store', signal: controller.signal })
     if (!res.ok || !res.body) throw new Error(`download: ${res.status}`)
     const hash = crypto.createHash('sha256')
-    out = fs.createWriteStream(target)
+    out = realFs.createWriteStream(target)
     let received = 0
     let shown = 0
     for await (const chunk of res.body) {
@@ -354,7 +359,7 @@ async function downloadUpdate() {
     setUpdate({ status: 'ready', latest: update.version })
   } catch (error) {
     out?.destroy()
-    await fs.promises.rm(target, { force: true }).catch(quiet)
+    await realFs.promises.rm(target, { force: true }).catch(quiet)
     if (controller.signal.aborted) setUpdate({ status: 'available', latest: update.version, total: update.size })
     else {
       console.error('Update download failed:', error)
@@ -367,7 +372,7 @@ async function downloadUpdate() {
 
 const writable = (p) => {
   try {
-    fs.accessSync(p, fs.constants.W_OK)
+    realFs.accessSync(p, realFs.constants.W_OK)
     return true
   } catch {
     return false
@@ -389,10 +394,10 @@ async function installMac(dmg) {
   }
   const mount = path.join(updateDir(), 'mount')
   const staged = asideOf(bundle, 'update')
-  await fs.promises.rm(staged, { recursive: true, force: true })
+  await realFs.promises.rm(staged, { recursive: true, force: true })
   await run('hdiutil', ['attach', dmg, '-nobrowse', '-readonly', '-noautoopen', '-mountpoint', mount])
   try {
-    const name = (await fs.promises.readdir(mount)).find((f) => f.endsWith('.app'))
+    const name = (await realFs.promises.readdir(mount)).find((f) => f.endsWith('.app'))
     if (!name) throw new Error('no app in the disk image')
     await run('ditto', [path.join(mount, name), staged])
   } finally {
@@ -401,20 +406,22 @@ async function installMac(dmg) {
   await run('codesign', ['--verify', '--deep', '--strict', staged]) // copied whole and unchanged
   // Swap: the running copy keeps working from the files it has open; the old one is removed at the next start.
   const old = asideOf(bundle, 'old')
-  await fs.promises.rm(old, { recursive: true, force: true })
-  await fs.promises.rename(bundle, old)
+  await realFs.promises.rm(old, { recursive: true, force: true })
+  await realFs.promises.rename(bundle, old)
   try {
-    await fs.promises.rename(staged, bundle)
+    await realFs.promises.rename(staged, bundle)
   } catch (error) {
-    await fs.promises.rename(old, bundle)
+    await realFs.promises.rename(old, bundle)
     throw error
   }
+  rememberPage()
   app.relaunch() // the same path, now the new version
   app.exit(0)
   return updateState
 }
 
 function installWindows(exe) {
+  rememberPage()
   // The installer's own switches: an update, no questions, open the app when done.
   spawn(exe, ['--updated', '/S', '--force-run'], { detached: true, stdio: 'ignore' }).unref()
   setTimeout(() => app.quit(), 300)
@@ -435,11 +442,33 @@ async function installUpdate() {
   }
 }
 
+// The new version opens on the page the update was started from (the settings page), not the start page.
+const reopenFile = () => path.join(app.getPath('userData'), 'reopen.json')
+
+function rememberPage() {
+  try {
+    const url = mainWindow?.webContents.getURL()
+    if (url && isAppUrl(url)) fs.writeFileSync(reopenFile(), JSON.stringify({ url }))
+  } catch {
+    // it opens on the start page instead
+  }
+}
+
+function takeReopenPage() {
+  try {
+    const { url } = JSON.parse(fs.readFileSync(reopenFile(), 'utf8'))
+    fs.rmSync(reopenFile(), { force: true })
+    return typeof url === 'string' && isAppUrl(url) ? url : null
+  } catch {
+    return null
+  }
+}
+
 /** Left over from an earlier update: the downloaded installer and, on a Mac, the previous app. */
 function cleanUpAfterUpdate() {
-  fs.promises.rm(updateDir(), { recursive: true, force: true }).catch(quiet)
+  realFs.promises.rm(updateDir(), { recursive: true, force: true }).catch(quiet)
   if (process.platform === 'darwin' && app.isPackaged) {
-    for (const what of ['old', 'update']) fs.promises.rm(asideOf(macBundle(), what), { recursive: true, force: true }).catch(quiet)
+    for (const what of ['old', 'update']) realFs.promises.rm(asideOf(macBundle(), what), { recursive: true, force: true }).catch(quiet)
   }
 }
 

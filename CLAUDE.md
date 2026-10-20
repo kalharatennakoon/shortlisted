@@ -125,6 +125,9 @@ web app (PWA) was the alternative considered earlier. `desktop/README.md` has th
   `.dmg`, it opens the `.dmg` in Finder instead. Windows: runs the setup with `--updated /S --force-run`, which
   closes the app, installs and reopens it. The page can only send `check`/`download`/`cancel`/`install`; the
   address and checksum never come from it. macOS's own updater (Squirrel) isn't used: it needs a signed app.
+  After an update the app opens on the page it was started from (`reopen.json` in userData). The updater deletes
+  with `original-fs`: Electron's `fs` treats `.asar` files as folders, and the first cleanup left the old app's
+  `app.asar` behind.
   Copies before 1.0.3 have no `update` on the bridge: the page downloads the installer itself
   (`downloadInstaller`: progress bar, size + SHA-256 from `latest.json`) and then hands the finished file to "Save
   as". Not a plain link: those copies save under the final name with no progress, and a `.dmg` opened before it
