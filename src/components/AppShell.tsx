@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import AccountMenu from './AccountMenu'
 import Footer from './Footer'
 import { Logo } from './Icons'
+import { isDesktop } from '../lib/desktop'
 
 /** Signed-in page frame: sticky top bar (logo + account menu), content, footer. */
 export default function AppShell({ children }: { children: ReactNode }) {
@@ -23,7 +24,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <div className="navbar-inner">
           <Link to="/" className="brand" aria-label="Shortlisted home">
             <Logo size={30} />
-            <span>Shortlisted</span>
+            {/* The app's title bar already says Shortlisted */}
+            {!isDesktop && <span>Shortlisted</span>}
           </Link>
           <span className="spacer" />
           <AccountMenu />

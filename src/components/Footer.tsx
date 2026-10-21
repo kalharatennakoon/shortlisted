@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { APP_VERSION, CONTACT_EMAIL, DESKTOP_VERSION, OWNER_NAME } from '../lib/config'
-import { desktop, isDesktop } from '../lib/desktop'
+import { isDesktop } from '../lib/desktop'
 import { Logo, MailIcon } from './Icons'
 
 const mailto = `mailto:${CONTACT_EMAIL}?subject=Shortlisted`
@@ -20,11 +20,8 @@ export default function Footer({ compact = false }: { compact?: boolean }) {
         <span>© {year} Shortlisted</span>
         <span>Built by {OWNER_NAME} in Sri&nbsp;Lanka</span>
       </p>
-      {/* In the desktop app, its own window has a version of its own (desktop/package.json) */}
-      <span className="version" title="App version">
-        v{APP_VERSION}
-        {desktop?.version && ` · Desktop app ${desktop.version}`}
-      </span>
+      {/* Not in the desktop app: its versions are in Profile & settings → Desktop app */}
+      {!isDesktop && <span className="version" title="App version">v{APP_VERSION}</span>}
     </div>
   )
 

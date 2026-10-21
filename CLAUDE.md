@@ -152,8 +152,8 @@ web app (PWA) was the alternative considered earlier. `desktop/README.md` has th
 - **Releases:** each version keeps its own GitHub release, `desktop-v<version>` (from 1.0.3; Kalhara wants old
   ones kept); `desktop-latest` is replaced each time and is what `deploy.yml` serves from `/downloads/`.
 - Two version numbers on purpose: `APP_VERSION` (the site, "v3.0") and the app's own `version` (only bumped when
-  `desktop/` changes). Inside the app the footer shows both ("v3.0 · Desktop app 1.0.2"); Kalhara chose that over
-  renumbering the app or locking the two together (October 2026).
+  `desktop/` changes); Kalhara chose that over renumbering the app or locking the two together (October 2026).
+  The footer shows the site version on the web only; inside the app it shows none (Kalhara removed it, October 2026).
 - Icons: `scripts/make-icons.py` (Pillow) draws them from the logo's measurements: `desktop/build/icon.png` and
   `icon.icns` for the Mac (tile and shadow on a 1024px canvas), `icon.ico` for Windows (the tile fills the square,
   each size drawn at its own size). Colours and size are settings at its top; don't edit the image files by hand.
