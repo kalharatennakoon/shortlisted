@@ -53,6 +53,11 @@ Every new table **must** have RLS enabled and policies scoped to `auth.uid()`.
   while the stored login is untouched. The re-check must leave that alone (`isAuthRetryableFetchError`); signing out
   on it logged people out of the desktop app whenever they came back before the Wi-Fi did. Kalhara doesn't want
   people signed out automatically: sign out only when the server has refused the login or the stored one is gone.
+- Every `signOut` passes `{ scope: 'local' }`. The library's default is `'global'`, which ends the person's
+  sessions on every device: signing out in a browser logged the desktop app out an hour later (October 2026).
+- The desktop updater calls `saveStorage()` (`flushStorageData`) before it exits. `app.exit` doesn't wait for
+  storage to reach the disk, and a lost refresh token is sent again at the next start, where Supabase sees a
+  reused token and ends the session.
 - `supabase` client is a globalThis singleton so dev hot-reload never creates a second client racing token refresh.
 - Links that come back later (sign-up confirmation, reset, OAuth) use `returnUrl()`, not `appUrl()`: it adds the
   `?desktop=1` marker when the desktop app asked (see "Desktop app").

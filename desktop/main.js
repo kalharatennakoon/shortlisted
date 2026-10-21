@@ -456,6 +456,7 @@ async function installMac(dmg) {
     throw error
   }
   rememberPage()
+  saveStorage()
   app.relaunch() // the same path, now the new version
   app.exit(0)
   return updateState
@@ -463,6 +464,7 @@ async function installMac(dmg) {
 
 function installWindows(exe) {
   rememberPage()
+  saveStorage()
   // The installer's own switches: an update, no questions, open the app when done.
   spawn(exe, ['--updated', '/S', '--force-run'], { detached: true, stdio: 'ignore' }).unref()
   setTimeout(() => app.quit(), 300)
@@ -492,6 +494,17 @@ function rememberPage() {
     if (url && isAppUrl(url)) fs.writeFileSync(reopenFile(), JSON.stringify({ url }))
   } catch {
     // it opens on the start page instead
+  }
+}
+
+// The page's storage (the login among it) reaches the disk in the background, and app.exit doesn't wait for it.
+// Supabase hands out a new refresh token each time it renews the login; if the restart loses the newest one, the
+// next start sends the old one, Supabase takes that for a stolen token and ends the session: signed out.
+function saveStorage() {
+  try {
+    session.defaultSession.flushStorageData()
+  } catch {
+    // nothing more to do; the last background write stands
   }
 }
 

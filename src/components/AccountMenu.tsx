@@ -47,7 +47,7 @@ export default function AccountMenu() {
             <ShieldIcon /> Privacy
           </Link>
           <div className="menu-sep" />
-          <button role="menuitem" className="menu-item" onClick={() => supabase.auth.signOut()}>
+          <button role="menuitem" className="menu-item" onClick={() => supabase.auth.signOut({ scope: 'local' })}>
             <LogOutIcon /> Sign out
           </button>
         </div>

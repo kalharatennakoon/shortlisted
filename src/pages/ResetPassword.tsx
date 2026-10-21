@@ -50,7 +50,7 @@ export default function ResetPassword() {
           </label>
           {error && <p className="error">{error}</p>}
           <button type="submit" className="primary" disabled={busy}>{busy ? 'Saving…' : 'Save password'}</button>
-          <button type="button" className="link" onClick={() => supabase.auth.signOut()}>Cancel</button>
+          <button type="button" className="link" onClick={() => supabase.auth.signOut({ scope: 'local' })}>Cancel</button>
         </form>
       )}
     </div>

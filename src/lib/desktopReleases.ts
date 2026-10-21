@@ -13,6 +13,10 @@ export interface DesktopRelease {
  */
 export const DESKTOP_RELEASES: DesktopRelease[] = [
   {
+    version: '1.0.8',
+    notes: ['You stay signed in after updating the app.'],
+  },
+  {
     version: '1.0.7',
     notes: [
       'Dark mode: choose Light, Dark or Match system in Profile & settings. The window and title bar follow it.',
