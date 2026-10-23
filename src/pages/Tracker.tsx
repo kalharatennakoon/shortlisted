@@ -14,13 +14,14 @@ import { listStages, removeStage, saveStages, stageFromStep, stagesByApplication
 import { listDocuments, listLinks, setApplicationDocuments } from '../lib/documents'
 import Board from '../components/Board'
 import AppTable from '../components/AppTable'
+import SearchBox from '../components/SearchBox'
+import { searchApplications } from '../lib/search'
 import { todayKey } from '../lib/dates'
 import {
   BoardIcon,
   CalendarIcon,
   ChartIcon,
   PlusIcon,
-  SearchIcon,
   TableIcon,
   UploadIcon,
 } from '../components/Icons'
@@ -125,11 +126,7 @@ export default function Tracker() {
     ])
   }
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return apps
-    return apps.filter((a) => `${a.name} ${a.company ?? ''}`.toLowerCase().includes(q))
-  }, [apps, query])
+  const filtered = useMemo(() => searchApplications(apps, query), [apps, query])
 
   async function patch(app: Application, fields: Partial<Application>) {
     try {
@@ -202,10 +199,7 @@ export default function Tracker() {
             ))}
           </div>
           {view !== 'stats' && (
-            <label className="search">
-              <SearchIcon />
-              <input placeholder="Search role or company" value={query} onChange={(e) => setQuery(e.target.value)} />
-            </label>
+            <SearchBox value={query} onChange={setQuery} matches={filtered.length} total={apps.length} />
           )}
         </div>
 
@@ -232,6 +226,12 @@ export default function Tracker() {
             onEmail={setEmailFor}
             onCalendar={setCalendarFor}
           />
+        )}
+        {!loading && view !== 'stats' && view !== 'table' && apps.length > 0 && filtered.length === 0 && (
+          <p className="search-empty muted">
+            No applications match “{query.trim()}”.{' '}
+            <button className="link" onClick={() => setQuery('')}>Clear search</button>
+          </p>
         )}
         {loading ? (
           <p className="muted">Loading…</p>

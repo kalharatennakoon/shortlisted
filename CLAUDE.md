@@ -365,6 +365,7 @@ src/
   lib/stages.ts        Timeline: stageState, sortStages, stageFromStep / stepFromStage (the bridge to Next step),
                        suggestedStatus, stagesAsText (CSV), then the data calls listStages, saveStages (one upsert,
                        never deletes), removeStage (one stage)
+  lib/search.ts        searchApplications: every word typed must appear in role, company, status, platform, contact or notes
   lib/stageLists.ts    React context: application id -> its timeline (for board/table badges)
   lib/jobLink.ts       Quick add: asLink, readJobLink (calls the `job-link` function), fillForm (what goes into the form,
                        never over typed values), fillNote (the sentence under the link box), platformFor, notesFor
@@ -406,6 +407,8 @@ src/
   components/Timeline.tsx  Timeline section of the form: stages oldest first joined by a line, one edited at a time in a
                        copy ("Save stage" stores it straight away for an existing application), remove with a
                        confirm, suggested names, "Set as next step", status hint
+  components/SearchBox.tsx  Toolbar search: ⌘K / Ctrl+K or "/" focuses it (not while a dialog is open), Escape clears,
+                       "N of M" count + clear button while searching
   components/StageBadge.tsx  Timeline icon + count on board cards and table rows
   components/ApplicationForm.tsx  Add/edit/delete modal, one `.form-section` panel per group: The job, Your application,
                        Next step (date + TimePicker + quick dates, add-to-calendar chips), Timeline, Job posting, Contact
