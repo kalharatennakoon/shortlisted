@@ -37,7 +37,8 @@ export default function Privacy() {
           <li>
             The <strong>applications you add</strong>: role, company, dates, status, links, notes, next steps (like
             interview or follow-up dates and times), the stages you record on an application's timeline with your
-            notes about them, and a contact email for the employer, if you add one.
+            notes about them, how an application ended if you record it (where it stopped, why, and your note), and a
+            contact email for the employer, if you add one.
           </li>
           <li>
             Any <strong>documents you upload</strong> (such as CVs and cover letters), up to 5 MB each, and which

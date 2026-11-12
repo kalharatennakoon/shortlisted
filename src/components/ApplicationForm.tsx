@@ -9,6 +9,8 @@ import CvCheckDialog from './CvCheckDialog'
 import QuickAdd from './QuickAdd'
 import DuplicateNote from './DuplicateNote'
 import Timeline from './Timeline'
+import { EndingFields } from './HowItEnded'
+import { canRecordEnding, endingOf, guessStage, hasEnding } from '../lib/endings'
 import { CV_ANALYZER_NAME } from '../lib/cvCheck'
 import { eventFor } from '../lib/calendarLinks'
 import { fillForm, fillNote, type FilledField, type JobLinkAnswer, type LastFill } from '../lib/jobLink'
@@ -50,6 +52,11 @@ interface Props {
   others?: Application[]
   /** Leave this (new) application and open another one instead */
   onOpenOther?: (app: Application) => void
+  /**
+   * "How it ended" can be stored (its migration has been applied). Only needed for a new application: an existing one
+   * tells by itself, because its row carries the columns.
+   */
+  endingsAvailable?: boolean
 }
 
 const QUICK_DATES: [string, number][] = [
@@ -73,7 +80,7 @@ const empty: ApplicationInput = {
 
 export default function ApplicationForm({
   initial, initialDate, initialStatus, onSave, onDelete, onClose, docs, initialDocIds = [], onDocUploaded,
-  others = [], onOpenOther, initialStages, onStageSave, onStageRemove,
+  others = [], onOpenOther, initialStages, onStageSave, onStageRemove, endingsAvailable = false,
 }: Props) {
   const [form, setForm] = useState<ApplicationInput>(
     // todayKey() here, not in `empty`: a tab left open overnight would otherwise default to yesterday
@@ -115,6 +122,19 @@ export default function ApplicationForm({
 
   const set = <K extends keyof ApplicationInput>(key: K, value: ApplicationInput[K]) =>
     setForm((f) => ({ ...f, [key]: value }))
+
+  // How it ended: shown while the status is Rejected. Choosing Rejected fills in a first guess at where it stopped
+  // (from the timeline, or the status it had), unless something has been recorded already.
+  const canEnd = initial ? canRecordEnding(initial) : endingsAvailable
+  const [guessedStage, setGuessedStage] = useState(false)
+  function setStatus(status: ApplicationInput['status']) {
+    const guess =
+      status === 'Rejected' && form.status !== 'Rejected' && canEnd && !hasEnding(endingOf(form))
+        ? guessStage(stages ?? [], form.status)
+        : null
+    setForm((f) => ({ ...f, status, ...(guess ? { ended_stage: guess } : {}) }))
+    setGuessedStage(Boolean(guess))
+  }
 
   // Quick add (new applications only): what it last put in each field, so a second link can replace its own
   // values but never something typed by hand, and which fields to light up for a moment
@@ -191,10 +211,11 @@ export default function ApplicationForm({
     ) as ApplicationInput
     // Columns from a later migration (see types.ts): leave them out unless there is something to save or
     // the row already has them, so saving still works on a database that hasn't had the migration yet
-    for (const key of ['next_time', 'contact_email'] as const) {
+    for (const key of ['next_time', 'contact_email', 'ended_stage', 'ended_reason', 'ended_by', 'ended_note'] as const) {
       if (clean[key] == null && initial?.[key] === undefined) delete clean[key]
     }
     if ('next_time' in clean) clean.next_time = clean.next_date ? timeKey(clean.next_time) : null
+    if (clean.ended_note) clean.ended_note = clean.ended_note.trim() || null
     // A stage still open in the Timeline would be lost when the form closes: have it saved or cancelled first
     if (stagePending) {
       setError('Timeline: press "Save stage" (or Cancel) on the stage you are editing first.')
@@ -248,7 +269,7 @@ export default function ApplicationForm({
             </label>
             <label>
               Status
-              <select value={form.status} onChange={(e) => set('status', e.target.value as ApplicationInput['status'])}>
+              <select value={form.status} onChange={(e) => setStatus(e.target.value as ApplicationInput['status'])}>
                 {STATUSES.map((s) => <option key={s}>{s}</option>)}
               </select>
             </label>
@@ -268,6 +289,22 @@ export default function ApplicationForm({
             </label>
           </div>
         </section>
+
+        {canEnd && form.status === 'Rejected' && (
+          <section className="form-section" aria-labelledby="sec-ended">
+            <h3 id="sec-ended">
+              How it ended <span className="muted">optional</span>
+            </h3>
+            <EndingFields
+              value={endingOf(form)}
+              guessed={guessedStage}
+              onChange={(e) => {
+                if (e.ended_stage !== form.ended_stage) setGuessedStage(false)
+                setForm((f) => ({ ...f, ...e }))
+              }}
+            />
+          </section>
+        )}
 
         <section className="form-section" aria-labelledby="sec-next">
           <h3 id="sec-next">
@@ -343,7 +380,7 @@ export default function ApplicationForm({
                 : undefined
             }
             status={form.status}
-            onStatus={(status) => set('status', status)}
+            onStatus={setStatus}
             canPlan={!form.next_step && !form.next_date}
             onPlan={(stage) =>
               setForm((f) => {
