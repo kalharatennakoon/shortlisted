@@ -7,12 +7,18 @@ import { timeKey, toKey } from './dates'
 import { isEmail } from './emailTemplates'
 import { stagesAsText } from './stages'
 import {
+  ENDED_BY,
+  ENDED_REASONS,
+  ENDED_STAGES,
   NEXT_STEPS,
   PLATFORMS,
   PRIORITIES,
   STATUSES,
   type Application,
   type ApplicationInput,
+  type EndedBy,
+  type EndedReason,
+  type EndedStage,
   type NextStep,
   type Platform,
   type Priority,
@@ -38,6 +44,10 @@ const EXPORT_COLUMNS: [Field, string][] = [
   ['posting_closed', 'Posting Closed'],
   ['contact_email', 'Contact Email'],
   ['notes', 'Notes'],
+  ['ended_stage', 'Ended At'],
+  ['ended_by', 'Ended By'],
+  ['ended_reason', 'End Reason'],
+  ['ended_note', 'End Note'],
 ]
 
 // Normalised header (lowercase, letters/digits only) -> field
@@ -57,6 +67,10 @@ alias('posting_checked_on', 'postingcheckedon', 'postingchecked', 'datechecked',
 alias('posting_closed', 'postingclosed', 'jobclosed', 'closed', 'expired')
 alias('contact_email', 'contactemail', 'recruiteremail', 'hremail', 'email')
 alias('notes', 'notes', 'note', 'comments', 'comment', 'description')
+alias('ended_stage', 'endedat', 'endstage', 'endedstage', 'rejectedat', 'stoppedat')
+alias('ended_by', 'endedby', 'whoended')
+alias('ended_reason', 'endreason', 'endedreason', 'rejectionreason', 'reasonforrejection', 'reason')
+alias('ended_note', 'endnote', 'endednote', 'rejectionnote', 'rejectionnotes', 'feedback')
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
 
@@ -72,6 +86,7 @@ export function applicationsToCsv(apps: Application[], stages?: Map<string, Stag
     ...apps.map((a) => [
       ...EXPORT_COLUMNS.map(([field]) => {
         if (field === 'posting_closed') return a.posting_closed ? 'Yes' : ''
+        if (field === 'ended_by') return a.ended_by === 'Me' ? 'I withdrew' : (a.ended_by ?? '')
         if (field === 'next_time') return (a.next_date && timeKey(a.next_time)) || '' // 14:30, not Postgres' 14:30:00
         return (a[field] as string | null) ?? ''
       }),
@@ -83,7 +98,7 @@ export function applicationsToCsv(apps: Application[], stages?: Map<string, Stag
 export function templateCsv(): string {
   return toCsv([
     EXPORT_COLUMNS.map(([, header]) => header),
-    ['DevOps Engineer', 'Acme Ltd', '2026-09-20', 'LinkedIn', 'High', 'Applied', 'Interview', '2026-10-04', '14:30', 'https://example.com/jobs/123', '2026-09-27', '', 'hr@example.com', 'Referred by a friend'],
+    ['DevOps Engineer', 'Acme Ltd', '2026-09-20', 'LinkedIn', 'High', 'Applied', 'Interview', '2026-10-04', '14:30', 'https://example.com/jobs/123', '2026-09-27', '', 'hr@example.com', 'Referred by a friend', '', '', '', ''],
   ])
 }
 
@@ -213,6 +228,20 @@ function toInput(raw: Partial<Record<Field, string>>): { input: ApplicationInput
   const checked = parseDate(raw.posting_checked_on)
   if (checked.warning) warnings.push(`Posting checked date ${checked.warning}`)
   const closed = /^(yes|y|true|1|closed|expired)$/i.test(raw.posting_closed ?? '')
+
+  // How it ended (migration 20261112000000): only sent when the file has it, like the columns above
+  const endedStage = matchEnum<EndedStage>(raw.ended_stage, ENDED_STAGES, ENDED_STAGE_ALIASES)
+  if (endedStage.unknown) warnings.push(`Ended at "${endedStage.unknown}" not recognised, left blank`)
+  const endedReason = matchEnum<EndedReason>(raw.ended_reason, ENDED_REASONS, ENDED_REASON_ALIASES)
+  if (endedReason.unknown) warnings.push(`End reason "${endedReason.unknown}" saved as Other`)
+  const endedBy = matchEnum<EndedBy>(raw.ended_by, ENDED_BY, ENDED_BY_ALIASES).value
+  const endedNote = raw.ended_note?.trim().slice(0, 1000) || null
+  const ending = {
+    ...(endedStage.value ? { ended_stage: endedStage.value } : {}),
+    ...(endedReason.value || endedReason.unknown ? { ended_reason: endedReason.value ?? ('Other' as const) } : {}),
+    ...(endedBy ? { ended_by: endedBy } : {}),
+    ...(endedNote ? { ended_note: endedNote } : {}),
+  }
   return {
     warnings,
     input: {
@@ -232,6 +261,7 @@ function toInput(raw: Partial<Record<Field, string>>): { input: ApplicationInput
       // same for the next-step time and contact email (migration 20261002120000)
       ...(time && next_step && next_date ? { next_time: time } : {}),
       ...(contact && isEmail(contact) ? { contact_email: contact } : {}),
+      ...ending,
     },
   }
 }
@@ -247,6 +277,21 @@ const STATUS_ALIASES: Record<string, Status> = {
   offer: 'Offered', accept: 'Accepted', hired: 'Accepted',
   reject: 'Rejected', declined: 'Rejected', notselected: 'Rejected',
   noreply: 'No Response', ghosted: 'No Response', none: 'No Response', noresponse: 'No Response',
+}
+const ENDED_STAGE_ALIASES: Record<string, EndedStage> = {
+  cv: 'Application', cvapplication: 'Application', applied: 'Application', screeningcall: 'Screening', phonescreen: 'Screening',
+  call: 'Screening', test: 'Assessment', testorassessment: 'Assessment', aptitudetest: 'Assessment', finalinterview: 'Final round',
+  final: 'Final round', offerstage: 'Offer',
+}
+const ENDED_REASON_ALIASES: Record<string, EndedReason> = {
+  notenoughexperience: 'Experience', missingarequiredskill: 'Skills', missingskill: 'Skills', skill: 'Skills',
+  salarydidntmatch: 'Salary', positionfilledorcancelled: 'Position filled', filled: 'Position filled', cancelled: 'Position filled',
+  locationorworkmode: 'Location', didntpassthetestorinterview: 'Test or interview', failed: 'Test or interview',
+  noreason: 'No reason given', none: 'No reason given', tookanotheroffer: 'Another offer', processtooktoolong: 'Took too long',
+  tooslow: 'Took too long',
+}
+const ENDED_BY_ALIASES: Record<string, EndedBy> = {
+  iwithdrew: 'Me', withdrew: 'Me', withdrawn: 'Me', you: 'Me', company: 'Employer', them: 'Employer', theyturnedmedown: 'Employer',
 }
 const NEXT_STEP_ALIASES: Record<string, NextStep> = { followup: 'Follow up', test: 'Assessment', phonecall: 'Call' }
 

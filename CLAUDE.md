@@ -187,6 +187,7 @@ Table `public.applications`, defined in `supabase/migrations/`:
 | `contact_email` | (new) | recruiter / hiring contact, optional; the "To" of email drafts |
 | `posting_checked_on` | (new) | date the user last opened the job posting; null = never |
 | `posting_closed` | (new) | boolean, default false: the posting has been taken down |
+| `ended_stage`, `ended_reason`, `ended_by`, `ended_note` | (new) | how a rejection ended, all optional (see "How it ended") |
 | `user_id` | (owner) | uuid → auth.users, defaults to `auth.uid()` |
 
 Stages of an application live in their own table, `public.application_stages` (see "Timeline" below).
@@ -327,6 +328,29 @@ Timeline (migration `20261009000000_application_stages.sql`, `lib/stages.ts`, `c
   section, the badges and the Up next hand-over simply aren't there. Suggested stage names are deliberately not
   IT-only ("Assessment", "Panel interview"); keep them that way.
 
+How it ended (migration `20261112000000_how_it_ended.sql`, `lib/endings.ts`, `components/HowItEnded.tsx`):
+- Four optional columns on `applications`: `ended_stage` (enum Application / Screening / Assessment / Interview /
+  Final round / Offer), `ended_reason` (enum, see `ENDED_REASONS`), `ended_by` (Employer / Me: "I withdrew"),
+  `ended_note` (≤ 1,000). `ENDED_*` in `types.ts` must match the enums. They follow the posting-check rule: optional in
+  `Application`, only sent when set; `canRecordEnding(app)` (the row carries the keys) says whether the migration has run.
+- Shown and counted **only while the status is Rejected**, but never cleared when the status changes back, so nothing
+  typed in is lost. There is no "Withdrawn" status (it would touch the board's six columns, Stats and every status
+  list): withdrawing is `ended_by = 'Me'` on a Rejected application, and Stats keeps those out of the rejection charts.
+- Asked once: moving a card to Rejected on the board opens `EndingDialog` (Skip, Escape or an outside click save
+  nothing) when nothing has been recorded yet. The same fields are a "How it ended" section in the form while the
+  status is Rejected. Choosing Rejected (dialog or form) fills in a first guess at the step (`guessStage`: the stage
+  marked "Not selected" in the timeline, else the last stage that has happened, read loosely from its title; else the
+  status it had), and says it was filled in. Everything else stays empty: never guess a reason.
+- Reasons depend on the side (`REASONS_FOR`): the employer's (experience, skill, salary, filled, location, test,
+  no reason, other) or the person's own when they withdrew (salary, location, another offer, too slow, other).
+- Rejected cards and rows show `EndingTag` ("Interview · Missing skill", "Withdrew · Another offer"; short words in
+  `STAGE_SHORT` / `REASON_SHORT`), the full record as its tooltip.
+- Stats → "Where rejections happened" and "Reasons" (`endingStats`, follows the range switch), with a badge only when
+  one step or reason clearly leads (no tie, at least 2), a count of rejections with no details, and the withdrawals
+  in a line of their own. Only shown when there is at least one Rejected application.
+- CSV: export columns Ended At, Ended By ("I withdrew" / Employer), End Reason, End Note (before Timeline); import
+  reads them back loosely (labels and a few aliases; an unknown reason becomes Other with a warning).
+
 Notion status groups: To-do = Applied, Interviewed · In progress = Offered · Complete = Accepted, Rejected, No Response.
 Notion views: a **board grouped by Status** (shows Name, Company, Applied On) and a **calendar by Applied On**.
 
@@ -362,6 +386,7 @@ src/
   lib/dates.ts         Local YYYY-MM-DD helpers (todayKey, addDays, daysBetween, timeKey -> 'HH:MM'). Never use toISOString for "today"
   lib/duplicates.ts    Pure: postingKey (one string per posting, however the link was copied), findDuplicate (same link, or
                        same role + company), findByLink
+  lib/endings.ts       How it ended: labels, REASONS_FOR, guessStage / stageFromTitle, endingTag, endingStats (pure)
   lib/stages.ts        Timeline: stageState, sortStages, stageFromStep / stepFromStage (the bridge to Next step),
                        suggestedStatus, stagesAsText (CSV), then the data calls listStages, saveStages (one upsert,
                        never deletes), removeStage (one stage)
@@ -409,6 +434,8 @@ src/
                        confirm, suggested names, "Set as next step", status hint
   components/SearchBox.tsx  Toolbar search: ⌘K / Ctrl+K or "/" focuses it (not while a dialog is open), Escape clears,
                        "N of M" count + clear button while searching
+  components/HowItEnded.tsx  EndingFields (who / where / why / note chips, used in the form section and the dialog) and
+                       the default export EndingDialog, opened by Tracker after a card is moved to Rejected
   components/StageBadge.tsx  Timeline icon + count on board cards and table rows
   components/ApplicationForm.tsx  Add/edit/delete modal, one `.form-section` panel per group: The job, Your application,
                        Next step (date + TimePicker + quick dates, add-to-calendar chips), Timeline, Job posting, Contact
@@ -521,6 +548,7 @@ desktop/               The Windows and Mac app: main.js (window, links, sign-in 
 - [x] Quick add: paste a job posting's link and the form is filled in from it (Edge Function `job-link`)
 - [x] "You've already added this posting" warning (same link, or same role at the same company)
 - [x] Timeline per application: each stage with its date, result and notes (table `application_stages`)
+- [x] How it ended: where a rejection happened, why, or that you withdrew, with Stats on it (four columns on `applications`)
 - [ ] Signed installers (Apple Developer Program + a Windows certificate) so the first-open warnings go away
 - [ ] Private calendar feed to subscribe to (needs an Edge Function)
 - [ ] Contacts / recruiter per application (name, LinkedIn, last contacted; only the email exists so far)

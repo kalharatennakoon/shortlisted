@@ -8,6 +8,8 @@ import UpNext from '../components/UpNext'
 import ImportExportDialog from '../components/ImportExportDialog'
 import EmailDialog, { type EmailUse } from '../components/EmailDialog'
 import CalendarDialog from '../components/AddToCalendar'
+import EndingDialog from '../components/HowItEnded'
+import { canRecordEnding, emptyEnding, endingOf, guessStage, hasEnding, type Ending } from '../lib/endings'
 import { DocCounts } from '../lib/docCounts'
 import { StageLists } from '../lib/stageLists'
 import { listStages, removeStage, saveStages, stageFromStep, stagesByApplication } from '../lib/stages'
@@ -55,6 +57,8 @@ export default function Tracker() {
   const [ioOpen, setIoOpen] = useState(false)
   const [emailFor, setEmailFor] = useState<Application | null>(null)
   const [calendarFor, setCalendarFor] = useState<Application | null>(null)
+  /** Just moved to Rejected on the board: ask what happened (optional), starting from a guessed step */
+  const [endingFor, setEndingFor] = useState<{ app: Application; initial: Ending; guessed: boolean } | null>(null)
   const [docs, setDocs] = useState<JobDocument[]>([])
   const [links, setLinks] = useState<DocumentLink[]>([])
   // Every application's timeline. null = not available (its migration hasn't been run yet): the app works without it
@@ -156,6 +160,11 @@ export default function Tracker() {
     try {
       const updated = await updateApplication(app.id, { status })
       setApps((xs) => xs.map((x) => (x.id === app.id ? updated : x)))
+      // Ask how it ended, once, when it has just become a rejection and nothing has been recorded yet
+      if (status === 'Rejected' && previous !== 'Rejected' && canRecordEnding(updated) && !hasEnding(endingOf(updated))) {
+        const guess = guessStage(stagesFor(app.id), previous)
+        setEndingFor({ app: updated, initial: { ...emptyEnding, ended_stage: guess }, guessed: Boolean(guess) })
+      }
     } catch (e) {
       setApps((xs) => xs.map((x) => (x.id === app.id ? { ...x, status: previous } : x)))
       setError(`Couldn't move "${app.name}": ${errorMessage(e)}`)
@@ -272,6 +281,7 @@ export default function Tracker() {
           initialStages={stages ? (editing.mode === 'edit' ? stagesFor(editing.app.id) : []) : undefined}
           onStageSave={(appId, stage) => storeStages(appId, [stage])}
           onStageRemove={dropStage}
+          endingsAvailable={apps.some(canRecordEnding)}
           onDocUploaded={(doc) => setDocs((ds) => [doc, ...ds])}
           onSave={async (input, documentIds, timeline) => {
             if (editing.mode === 'edit') {
@@ -316,6 +326,18 @@ export default function Tracker() {
           onEdit={() => {
             setEditing({ mode: 'edit', app: calendarFor })
             setCalendarFor(null)
+          }}
+        />
+      )}
+      {endingFor && (
+        <EndingDialog
+          app={endingFor.app}
+          initial={endingFor.initial}
+          guessed={endingFor.guessed}
+          onClose={() => setEndingFor(null)}
+          onSave={async (ending) => {
+            const updated = await updateApplication(endingFor.app.id, { ...ending })
+            setApps((xs) => xs.map((x) => (x.id === updated.id ? updated : x)))
           }}
         />
       )}

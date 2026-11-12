@@ -10,6 +10,17 @@ export type Priority = (typeof PRIORITIES)[number]
 export type Platform = (typeof PLATFORMS)[number]
 export type NextStep = (typeof NEXT_STEPS)[number]
 
+// How an application ended (migration 20261112000000_how_it_ended.sql). Labels and rules live in lib/endings.ts.
+export const ENDED_STAGES = ['Application', 'Screening', 'Assessment', 'Interview', 'Final round', 'Offer'] as const
+export const ENDED_REASONS = [
+  'Experience', 'Skills', 'Salary', 'Position filled', 'Location', 'Test or interview', 'No reason given',
+  'Another offer', 'Took too long', 'Other',
+] as const
+export const ENDED_BY = ['Employer', 'Me'] as const
+export type EndedStage = (typeof ENDED_STAGES)[number]
+export type EndedReason = (typeof ENDED_REASONS)[number]
+export type EndedBy = (typeof ENDED_BY)[number]
+
 export interface Application {
   id: string
   user_id: string
@@ -34,6 +45,16 @@ export interface Application {
   posting_checked_on?: string | null
   /** The posting has been taken down */
   posting_closed?: boolean
+  // How it ended (migration 20261112000000). Optional, same rule: only sent when set. Shown and counted only while
+  // the status is Rejected, but kept if the status changes back.
+  /** Where it stopped */
+  ended_stage?: EndedStage | null
+  /** Why it stopped */
+  ended_reason?: EndedReason | null
+  /** Who ended it: the employer, or the person withdrew */
+  ended_by?: EndedBy | null
+  /** What they said, or what the person would do differently */
+  ended_note?: string | null
   created_at: string
   updated_at: string
 }

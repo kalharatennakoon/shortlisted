@@ -2,6 +2,7 @@ import { statusClass } from '../lib/format'
 import { isStale, relativeLabel, stepLabel, urgencyOf } from '../lib/nextSteps'
 import type { Application, Status } from '../lib/types'
 import { postingSummary, postingUrl } from '../lib/posting'
+import { endingTag, endingTitle } from '../lib/endings'
 import { BellIcon, ExternalIcon } from './Icons'
 
 /** Next-step reminder on a card/row: "Interview · Thu" coloured by urgency, or a follow-up nudge. */
@@ -54,4 +55,15 @@ export function PostingLink({ app, label = false }: { app: Application; label?: 
 export function PostingBadge({ app }: { app: Application }) {
   if (!app.posting_closed) return null
   return <span className="posting-badge" title={postingSummary(app)}>Posting closed</span>
+}
+
+/** On a Rejected card or row: where it stopped and why ("Interview · Missing skill"), when that was recorded */
+export function EndingTag({ app }: { app: Application }) {
+  const tag = endingTag(app)
+  if (!tag) return null
+  return (
+    <span className="ending-tag status-rejected" title={endingTitle(app)}>
+      {tag}
+    </span>
+  )
 }

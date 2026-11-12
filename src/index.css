@@ -1105,6 +1105,25 @@ a.chip:focus-visible { outline: none; box-shadow: var(--focus); }
 .cv-check-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--border); }
 .cv-check-row button.chip { display: inline-flex; align-items: center; gap: 5px; }
 .cv-check-row button.chip svg { color: var(--accent); }
+
+/* ---------- How it ended (form section + the dialog after a move to Rejected) ---------- */
+.ending-modal { max-width: 560px; }
+.ending-fields { display: flex; flex-direction: column; gap: 14px; }
+.ending-side { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.chip-set { display: flex; flex-wrap: wrap; gap: 6px; }
+/* A chip that can be on or off; only tokens, so the dark theme needs no twin */
+button.chip[aria-pressed="true"], button.chip[aria-pressed="true"]:hover {
+  background: var(--accent-soft); border-color: var(--accent); color: var(--accent-hover); font-weight: 600;
+}
+button.chip:focus-visible { outline: none; box-shadow: var(--focus); }
+/* Tag on Rejected cards and rows: where it stopped and why. Status tokens, so dark comes with .status-rejected */
+.ending-tag {
+  display: inline-flex; align-items: center; align-self: flex-start; max-width: 100%; padding: 2px 8px; border-radius: 6px;
+  background: var(--st-bg); color: var(--st-fg); font-size: 11.5px; font-weight: 600; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; vertical-align: middle;
+}
+.status-cell { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.stats-note { margin-top: 10px; }
 .cv-check > * { flex-shrink: 0; }
 .cv-check p strong { color: var(--text-2); font-weight: 600; }
 .cv-check-facts { margin: 0; display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 10px; }

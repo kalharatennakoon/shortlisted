@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { fmtDate } from '../lib/format'
 import { PRIORITIES, STATUSES, type Application } from '../lib/types'
-import { NextBadge, PostingBadge, PostingLink, StatusPill } from './Badges'
+import { NextBadge, PostingBadge, PostingLink, StatusPill, EndingTag } from './Badges'
 import { DocBadge } from './DocBadge'
 import { StageBadge } from './StageBadge'
 import { ChevronIcon, FlagIcon } from './Icons'
@@ -115,7 +115,12 @@ export default function AppTable({ apps, total, onOpen }: { apps: Application[];
                 )}
               </td>
               <td className="hide-md"><NextBadge app={a} /></td>
-              <td><StatusPill status={a.status} /></td>
+              <td>
+                <span className="status-cell">
+                  <StatusPill status={a.status} />
+                  <EndingTag app={a} />
+                </span>
+              </td>
             </tr>
           ))}
           {rows.length === 0 && (

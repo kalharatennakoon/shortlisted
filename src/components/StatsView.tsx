@@ -17,6 +17,7 @@ import {
   type WeekCount,
 } from '../lib/stats'
 import type { Application } from '../lib/types'
+import { endingStats, type EndingStats } from '../lib/endings'
 import { BellIcon, BriefcaseIcon, BuildingIcon, ChartIcon, FlagIcon, MailIcon, UserIcon, BoardIcon } from './Icons'
 
 const pct = (x: number | null) => (x === null ? '—' : `${Math.round(x * 100)}%`)
@@ -288,6 +289,103 @@ function Highlight({ icon, title, children }: { icon: ReactNode; title: string; 
   )
 }
 
+/** Where rejections happened and why (from "How it ended"). Only shown when there is at least one rejection. */
+function HowTheyEnded({ e }: { e: EndingStats }) {
+  const staged = e.byStage.reduce((n, s) => n + s.count, 0)
+  const reasoned = e.byReason.reduce((n, r) => n + r.count, 0)
+  const withdrew = e.withdrew > 0 && (
+    <p className="muted small stats-note">
+      You withdrew from {plural(e.withdrew, 'application')}
+      {e.withdrewReasons.length > 0 && ` (${e.withdrewReasons.map((r) => `${r.label.toLowerCase()}: ${r.count}`).join(', ')})`}. Those aren't counted
+      above.
+    </p>
+  )
+  const missing = e.noDetails > 0 && (
+    <p className="muted small stats-note">
+      {plural(e.noDetails, 'rejection')} {e.noDetails === 1 ? 'has' : 'have'} no details yet. Open one and fill in “How it ended”.
+    </p>
+  )
+
+  if (!staged && !reasoned) {
+    return (
+      <section className="card viz-panel">
+        <header className="viz-head">
+          <div>
+            <h3>Why applications ended</h3>
+            <p className="muted small">
+              {e.turnedDown
+                ? `${plural(e.turnedDown, 'rejection')} so far. Record where each one stopped and why, and patterns show up here.`
+                : 'Nothing turned down so far.'}
+            </p>
+          </div>
+        </header>
+        {withdrew}
+        {e.turnedDown > 0 && (
+          <p className="muted small stats-note">
+            Open a rejected application and fill in “How it ended”, or move a card to Rejected on the board.
+          </p>
+        )}
+      </section>
+    )
+  }
+
+  return (
+    <div className="viz-two">
+      <Panel
+        title="Where rejections happened"
+        subtitle={`The step it stopped at (${staged} of ${plural(e.turnedDown, 'rejection')})`}
+        badge={e.commonStage && <span className="stat-chip">Most at: {e.commonStage.label}</span>}
+        table={
+          <table className="viz-table">
+            <thead><tr><th>Step</th><th className="num">Rejections</th><th className="num">Share</th></tr></thead>
+            <tbody>{e.byStage.map((r) => <tr key={r.key}><td>{r.label}</td><td className="num">{r.count}</td><td className="num">{pct(staged ? r.count / staged : null)}</td></tr>)}</tbody>
+          </table>
+        }
+      >
+        <BarList
+          max={Math.max(1, ...e.byStage.map((r) => r.count))}
+          rows={e.byStage.map((r) => ({
+            label: r.label,
+            value: r.count,
+            display: String(r.count),
+            tip: `${pct(staged ? r.count / staged : null)} of the rejections with a step recorded`,
+          }))}
+        />
+        {missing}
+      </Panel>
+
+      <Panel
+        title="Reasons"
+        subtitle={reasoned ? `Main reason given (${reasoned} of ${plural(e.turnedDown, 'rejection')})` : 'Main reason given'}
+        badge={e.commonReason && <span className="stat-chip">Top: {e.commonReason.label}</span>}
+        table={
+          reasoned ? (
+            <table className="viz-table">
+              <thead><tr><th>Reason</th><th className="num">Rejections</th><th className="num">Share</th></tr></thead>
+              <tbody>{e.byReason.map((r) => <tr key={r.key}><td>{r.label}</td><td className="num">{r.count}</td><td className="num">{pct(r.count / reasoned)}</td></tr>)}</tbody>
+            </table>
+          ) : undefined
+        }
+      >
+        {reasoned ? (
+          <BarList
+            max={Math.max(1, ...e.byReason.map((r) => r.count))}
+            rows={e.byReason.map((r) => ({
+              label: r.label,
+              value: r.count,
+              display: String(r.count),
+              tip: `${pct(r.count / reasoned)} of the rejections with a reason recorded`,
+            }))}
+          />
+        ) : (
+          <p className="muted small">No reasons recorded yet.</p>
+        )}
+        {withdrew}
+      </Panel>
+    </div>
+  )
+}
+
 // ---------- Page ----------
 
 export default function StatsView({ apps }: { apps: Application[] }) {
@@ -303,6 +401,7 @@ export default function StatsView({ apps }: { apps: Application[] }) {
   const weeks = useMemo(() => perWeek(apps, weeksFor(apps, range.days)), [apps, range.days])
   const recent = useMemo(() => perWeek(apps, 12), [apps])
   const followUps = useMemo(() => needsFollowUp(shown).length, [shown])
+  const endings = useMemo(() => endingStats(shown), [shown])
 
   if (apps.length === 0) {
     return <p className="muted">Add a few applications and your stats will show up here.</p>
@@ -456,6 +555,8 @@ export default function StatsView({ apps }: { apps: Application[] }) {
               </ul>
             </Panel>
           </div>
+
+          {endings.ended > 0 && <HowTheyEnded e={endings} />}
         </>
       )}
     </div>
